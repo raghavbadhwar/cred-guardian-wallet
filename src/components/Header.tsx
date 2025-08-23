@@ -1,7 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Shield, Settings, ChevronLeft } from "lucide-react";
+import { Shield, Settings, ChevronLeft, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
 import credverseIcon from "@/assets/credverse-icon.png";
 
 interface HeaderProps {
@@ -19,6 +20,7 @@ export function Header({
   showProfile = true,
   className 
 }: HeaderProps) {
+  const { signOut } = useAuth();
   return (
     <header className={cn("flex items-center justify-between p-4 bg-background/80 backdrop-blur-sm border-b border-border/50", className)}>
       <div className="flex items-center gap-3">
@@ -53,6 +55,15 @@ export function Header({
           
           <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
             <Settings size={16} />
+          </Button>
+          
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="h-8 w-8 p-0"
+            onClick={signOut}
+          >
+            <LogOut size={16} />
           </Button>
         </div>
       )}

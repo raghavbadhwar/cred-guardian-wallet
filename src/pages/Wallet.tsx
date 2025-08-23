@@ -1,61 +1,101 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
-import { CredentialCard, type Credential } from "@/components/CredentialCard";
+import { CredentialCard } from "@/components/CredentialCard";
+import { QRScanner } from "@/components/QRScanner";
+import { BackupDialog } from "@/components/BackupDialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Plus, QrCode, Upload, Download } from "lucide-react";
-
-// Mock data for demo
-const mockCredentials: Credential[] = [
-  {
-    id: "1",
-    type: "Bachelor of Computer Science",
-    issuer: "MIT",
-    issuerDomain: "mit.edu",
-    subject: "Computer Science Degree",
-    issuedDate: "2024-05-15",
-    status: "valid",
-    category: "degree"
-  },
-  {
-    id: "2", 
-    type: "Data Science Certificate",
-    issuer: "Harvard University",
-    issuerDomain: "harvard.edu",
-    subject: "Professional Certificate",
-    issuedDate: "2024-03-10",
-    status: "valid",
-    category: "certificate"
-  },
-  {
-    id: "3",
-    type: "Academic Transcript",
-    issuer: "Stanford University", 
-    issuerDomain: "stanford.edu",
-    subject: "Official Transcript",
-    issuedDate: "2023-12-20",
-    status: "expired",
-    category: "transcript"
-  }
-];
+import { useAuth } from "@/hooks/useAuth";
+import { useCredentials } from "@/hooks/useCredentials";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Wallet() {
   const navigate = useNavigate();
-  const [credentials] = useState<Credential[]>(mockCredentials);
+  const { user, loading: authLoading } = useAuth();
+  const { credentials, loading: credentialsLoading, addCredential } = useCredentials();
+  const { toast } = useToast();
+  
+  const [showQRScanner, setShowQRScanner] = useState(false);
+  const [showBackupDialog, setShowBackupDialog] = useState(false);
 
-  const handleCredentialClick = (credential: Credential) => {
+  // Redirect to auth if not logged in
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/auth');
+    }
+  }, [user, authLoading, navigate]);
+
+  if (authLoading || credentialsLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-credverse-primary mx-auto mb-4"></div>
+          <div className="text-muted-foreground">Loading your credentials...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) return null;
+
+  const handleCredentialClick = (credential: any) => {
     navigate(`/credential/${credential.id}`);
   };
 
-  const handleReceiveCredential = () => {
-    console.log("Receive credential flow");
-    // TODO: Open receive credential modal/page
+  const handleReceiveCredential = async () => {
+    // Demo: Add a sample credential
+    try {
+      await addCredential({
+        type: "Demo Certificate",
+        issuer: "CredVerse Academy",
+        issuerDomain: "credverse.edu",
+        subject: "Blockchain Fundamentals",
+        issuedDate: new Date().toISOString().split('T')[0],
+        status: "valid",
+        category: "certificate",
+        credentialData: {
+          grade: "A+",
+          duration: "3 months",
+          skills: ["Blockchain", "Smart Contracts", "DeFi"]
+        }
+      });
+    } catch (error) {
+      console.error('Error adding credential:', error);
+    }
+  };
+
+  const handleQRScan = () => {
+    setShowQRScanner(true);
+  };
+
+  const handleQRResult = async (result: string) => {
+    setShowQRScanner(false);
+    toast({
+      title: "QR Code Scanned",
+      description: "Processing credential data...",
+    });
+    
+    // Demo: Process QR result
+    try {
+      await addCredential({
+        type: "QR Scanned Certificate",
+        issuer: "Mobile University",
+        issuerDomain: "mobile.edu",
+        subject: "Digital Literacy",
+        issuedDate: new Date().toISOString().split('T')[0],
+        status: "valid",
+        category: "certificate",
+        credentialData: { source: "qr_scan", data: result }
+      });
+    } catch (error) {
+      console.error('Error processing QR credential:', error);
+    }
   };
 
   const handleBackup = () => {
-    console.log("Backup wallet");
-    // TODO: Open backup flow
+    setShowBackupDialog(true);
   };
 
   return (
@@ -75,6 +115,7 @@ export default function Wallet() {
           </Button>
           
           <Button 
+            onClick={handleQRScan}
             variant="outline"
             className="h-16 border-border/50 hover:bg-card-hover flex-col gap-1 transition-smooth"
           >
@@ -153,6 +194,18 @@ export default function Wallet() {
             </Card>
           )}
         </div>
+
+        {/* Modals */}
+        <QRScanner 
+          open={showQRScanner}
+          onClose={() => setShowQRScanner(false)}
+          onResult={handleQRResult}
+        />
+        
+        <BackupDialog
+          open={showBackupDialog}
+          onClose={() => setShowBackupDialog(false)}
+        />
       </div>
     </div>
   );

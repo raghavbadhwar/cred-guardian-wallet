@@ -14,6 +14,7 @@ export interface Credential {
   issuedDate: string;
   status: CredentialStatus;
   category: "degree" | "diploma" | "certificate" | "transcript";
+  credentialData?: any;
 }
 
 interface CredentialCardProps {
