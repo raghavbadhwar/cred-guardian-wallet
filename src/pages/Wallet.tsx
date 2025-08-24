@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Header } from "@/components/Header";
 import { CredentialCard } from "@/components/CredentialCard";
 import { EnhancedCredentialCard } from "@/components/EnhancedCredentialCard";
+import { EnhancedReceiveButton } from "@/components/EnhancedReceiveButton";
 import { QRScanner } from "@/components/QRScanner";
 import { BackupDialog } from "@/components/BackupDialog";
 import { OnboardingTour } from "@/components/OnboardingTour";
@@ -67,25 +68,19 @@ export default function Wallet() {
     navigate(`/credential/${credential.id}`);
   };
 
-  const handleReceiveCredential = async () => {
-    // Demo: Add a sample credential
+  const handleImportComplete = async (credential: any) => {
     try {
-      await addCredential({
-        type: "Demo Certificate",
-        issuer: "CredVerse Academy",
-        issuerDomain: "credverse.edu",
-        subject: "Blockchain Fundamentals",
-        issuedDate: new Date().toISOString().split('T')[0],
-        status: "valid",
-        category: "certificate",
-        credentialData: {
-          grade: "A+",
-          duration: "3 months",
-          skills: ["Blockchain", "Smart Contracts", "DeFi"]
-        }
+      await addCredential(credential);
+      toast({
+        title: "Import Successful",
+        description: "Credential has been added to your wallet",
       });
     } catch (error) {
-      console.error('Error adding credential:', error);
+      toast({
+        title: "Import Failed", 
+        description: "Failed to save credential to wallet",
+        variant: "destructive",
+      });
     }
   };
 
@@ -236,22 +231,18 @@ export default function Wallet() {
       <div className="p-4 space-y-6">
         {/* Quick Actions */}
         <div className="grid grid-cols-2 gap-3">
-          <Button 
-            onClick={handleReceiveCredential}
-            variant="primary"
-            className="h-16 flex-col gap-1"
-            data-tour="receive"
-          >
-            <Plus size={20} />
-            <span className="text-xs">{t('receive')}</span>
-          </Button>
+          <EnhancedReceiveButton
+            onImportComplete={handleImportComplete}
+            onNavigateToDigiLocker={navigateToDigiLocker}
+            onNavigateToImport={navigateToImport}
+          />
           
           <Button 
             onClick={handleQRScan}
             variant="outline"
-            className="h-16 border-border/50 hover:bg-card-hover flex-col gap-1 transition-smooth"
+            className="h-16 border-border/50 hover:bg-card-hover flex-col gap-1 transition-smooth group"
           >
-            <QrCode size={20} />
+            <QrCode size={20} className="group-hover:scale-110 transition-smooth" />
             <span className="text-xs">{t('scan_qr')}</span>
           </Button>
         </div>
@@ -434,14 +425,12 @@ export default function Wallet() {
                           </p>
                         </div>
                         {!searchTerm && tab !== 'trash' && (
-                          <Button 
-                            onClick={handleReceiveCredential}
-                            variant="primary"
-                            data-tour="create-wallet"
-                          >
-                            <Plus size={16} className="mr-2" />
-                            {t('receive_credential')}
-                          </Button>
+                          <EnhancedReceiveButton
+                            onImportComplete={handleImportComplete}
+                            onNavigateToDigiLocker={navigateToDigiLocker}
+                            onNavigateToImport={navigateToImport}
+                            className="inline-block"
+                          />
                         )}
                       </div>
                     </Card>
