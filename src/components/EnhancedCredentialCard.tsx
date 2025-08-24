@@ -178,3 +178,5 @@ export function EnhancedCredentialCard({
     </Card>
   );
 }
+
+export default EnhancedCredentialCard;

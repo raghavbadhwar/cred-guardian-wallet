@@ -190,9 +190,10 @@ export function EnhancedShareDialog({ open, onClose, credential, onCreateShare }
             </Button>
           </div>
         </DialogContent>
-      </Dialog>
-    );
-  }
+    </Dialog>
+  );
+}
+
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -341,3 +342,5 @@ export function EnhancedShareDialog({ open, onClose, credential, onCreateShare }
     </Dialog>
   );
 }
+
+export default EnhancedShareDialog;
