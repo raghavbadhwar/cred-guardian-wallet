@@ -11,8 +11,6 @@ import {
   Archive, 
   RotateCcw,
   Trash2,
-  Tag,
-  Folder,
   Shield,
   AlertTriangle,
   CheckCircle,
@@ -23,17 +21,19 @@ import { formatDistanceToNow, format } from 'date-fns';
 
 interface Credential {
   id: string;
-  title: string;
-  issuer_name: string;
-  issuer_domain: string;
-  issued_date: string;
-  expires_at?: string;
-  status: 'valid' | 'revoked' | 'expired';
-  payload: any;
-  tags?: string[];
-  folder_id?: string;
+  type: string;
+  title?: string;
+  issuer: string;
+  issuer_name?: string;
+  issuerDomain: string;
+  subject: string;
+  issuedDate: string;
+  status: 'valid' | 'expired' | 'revoked';
+  category: 'degree' | 'certificate' | 'transcript' | 'diploma';
+  credentialData?: any;
   deleted_at?: string;
-  created_at: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 interface CredentialCardProps {
@@ -47,7 +47,7 @@ interface CredentialCardProps {
   isInTrash?: boolean;
 }
 
-export function CredentialCard({ 
+export function EnhancedCredentialCard({ 
   credential, 
   onShare, 
   onArchive, 
@@ -93,7 +93,7 @@ export function CredentialCard({
     const url = URL.createObjectURL(dataBlob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${credential.title.replace(/\s+/g, '_')}.json`;
+    link.download = `${(credential.title || credential.subject).replace(/\s+/g, '_')}.json`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -111,7 +111,7 @@ export function CredentialCard({
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2">
             {getStatusIcon(credential.status)}
-            <h3 className="font-semibold text-lg">{credential.title}</h3>
+            <h3 className="font-semibold text-lg">{credential.title || credential.subject}</h3>
             <Badge variant={getStatusVariant(credential.status)}>
               {t(`status_${credential.status}`)}
             </Badge>
@@ -119,30 +119,16 @@ export function CredentialCard({
           
           <div className="space-y-1 text-sm text-muted-foreground">
             <p>
-              <span className="font-medium">{t('issuer')}:</span> {credential.issuer_name}
+              <span className="font-medium">{t('issuer')}:</span> {credential.issuer_name || credential.issuer}
             </p>
             <p>
-              <span className="font-medium">{t('issued')}:</span> {format(new Date(credential.issued_date), 'PPP')}
+              <span className="font-medium">{t('issued')}:</span> {format(new Date(credential.issuedDate), 'PPP')}
             </p>
-            {credential.expires_at && (
-              <p>
-                <span className="font-medium">{t('expires')}:</span> {format(new Date(credential.expires_at), 'PPP')}
-              </p>
-            )}
             <p className="text-xs">
-              {t('added')} {formatDistanceToNow(new Date(credential.created_at))} {t('ago')}
+              {t('added')} {formatDistanceToNow(new Date(credential.createdAt || credential.issuedDate))} {t('ago')}
             </p>
           </div>
 
-          {credential.tags && credential.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-2">
-              {credential.tags.map((tag, index) => (
-                <Badge key={index} variant="outline" className="text-xs">
-                  {tag}
-                </Badge>
-              ))}
-            </div>
-          )}
         </div>
 
         <DropdownMenu>
@@ -161,15 +147,6 @@ export function CredentialCard({
                 <DropdownMenuItem onClick={handleDownload}>
                   <Download className="h-4 w-4 mr-2" />
                   {t('download')}
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => onAddTag?.(credential.id)}>
-                  <Tag className="h-4 w-4 mr-2" />
-                  {t('add_tag')}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onMoveToFolder?.(credential.id)}>
-                  <Folder className="h-4 w-4 mr-2" />
-                  {t('move_to_folder')}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 

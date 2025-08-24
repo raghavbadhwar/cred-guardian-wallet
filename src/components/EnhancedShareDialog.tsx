@@ -48,7 +48,7 @@ const PRESETS = {
   },
 };
 
-export function ShareDialog({ open, onClose, credential, onCreateShare }: ShareDialogProps) {
+export function EnhancedShareDialog({ open, onClose, credential, onCreateShare }: ShareDialogProps) {
   const { t } = useTranslation('wallet');
   const { toast } = useToast();
   const [preset, setPreset] = useState<'full' | 'lite' | 'custom'>('full');
