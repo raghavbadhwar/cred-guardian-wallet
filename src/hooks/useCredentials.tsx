@@ -6,13 +6,16 @@ import { useToast } from './use-toast';
 export interface Credential {
   id: string;
   type: string;
+  title?: string;
   issuer: string;
+  issuer_name?: string;
   issuerDomain: string;
   subject: string;
   issuedDate: string;
   status: 'valid' | 'expired' | 'revoked';
   category: 'degree' | 'certificate' | 'transcript' | 'diploma';
   credentialData?: any;
+  deleted_at?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -38,13 +41,16 @@ export function useCredentials() {
       const transformedCredentials = data.map(cred => ({
         id: cred.id,
         type: cred.type,
-        issuer: cred.issuer,
+        title: cred.title || cred.type,
+        issuer: cred.issuer || cred.issuer_name,
+        issuer_name: cred.issuer_name || cred.issuer,
         issuerDomain: cred.issuer_domain,
         subject: cred.subject,
         issuedDate: cred.issued_date,
         status: cred.status as 'valid' | 'expired' | 'revoked',
         category: cred.category as 'degree' | 'certificate' | 'transcript' | 'diploma',
-        credentialData: cred.credential_data,
+        credentialData: cred.payload,
+        deleted_at: cred.deleted_at,
         createdAt: cred.created_at,
         updatedAt: cred.updated_at
       }));
@@ -77,7 +83,7 @@ export function useCredentials() {
           issued_date: credentialData.issuedDate,
           status: credentialData.status,
           category: credentialData.category,
-          credential_data: credentialData.credentialData
+          payload: credentialData.credentialData
         })
         .select()
         .single();

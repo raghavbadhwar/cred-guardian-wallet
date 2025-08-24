@@ -3,29 +3,37 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Header } from "@/components/Header";
 import { CredentialCard } from "@/components/CredentialCard";
+import { EnhancedCredentialCard } from "@/components/EnhancedCredentialCard";
 import { QRScanner } from "@/components/QRScanner";
 import { BackupDialog } from "@/components/BackupDialog";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import { ShareDialog } from "@/components/ShareDialog";
+import { EnhancedShareDialog } from "@/components/EnhancedShareDialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Plus, QrCode, Upload, Download, Share2, ExternalLink } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, QrCode, Upload, Download, Share2, ExternalLink, Search } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCredentials } from "@/hooks/useCredentials";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Wallet() {
   const navigate = useNavigate();
   const { t } = useTranslation('wallet');
   const { user, loading: authLoading } = useAuth();
-  const { credentials, loading: credentialsLoading, addCredential } = useCredentials();
+  const { credentials, loading: credentialsLoading, addCredential, refetch } = useCredentials();
   const { toast } = useToast();
   
   const [showQRScanner, setShowQRScanner] = useState(false);
   const [showBackupDialog, setShowBackupDialog] = useState(false);
   const [showShareDialog, setShowShareDialog] = useState(false);
+  const [showEnhancedShare, setShowEnhancedShare] = useState(false);
   const [selectedCredential, setSelectedCredential] = useState<any>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeTab, setActiveTab] = useState('all');
 
   // Check if this is the first visit
   useEffect(() => {
@@ -115,7 +123,93 @@ export default function Wallet() {
 
   const handleShare = (credential: any) => {
     setSelectedCredential(credential);
-    setShowShareDialog(true);
+    setShowEnhancedShare(true);
+  };
+
+  const handleCreateShare = async (shareData: any) => {
+    try {
+      const response = await supabase.functions.invoke('create-share', {
+        body: shareData
+      });
+
+      if (response.error) throw response.error;
+      
+      return response.data;
+    } catch (error) {
+      console.error('Share creation failed:', error);
+      throw error;
+    }
+  };
+
+  const handleArchive = async (credentialId: string) => {
+    try {
+      const { error } = await supabase
+        .from('credentials')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', credentialId);
+
+      if (error) throw error;
+
+      await refetch();
+      toast({
+        title: t('credential_archived'),
+        description: t('credential_moved_to_trash'),
+      });
+    } catch (error) {
+      toast({
+        title: t('error'),
+        description: t('archive_failed'),
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleRestore = async (credentialId: string) => {
+    try {
+      const { error } = await supabase
+        .from('credentials')
+        .update({ deleted_at: null })
+        .eq('id', credentialId);
+
+      if (error) throw error;
+
+      await refetch();
+      toast({
+        title: t('credential_restored'),
+        description: t('credential_restored_desc'),
+      });
+    } catch (error) {
+      toast({
+        title: t('error'),
+        description: t('restore_failed'),
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDelete = async (credentialId: string) => {
+    if (!confirm(t('confirm_permanent_delete'))) return;
+
+    try {
+      const { error } = await supabase
+        .from('credentials')
+        .delete()
+        .eq('id', credentialId);
+
+      if (error) throw error;
+
+      await refetch();
+      toast({
+        title: t('credential_deleted'),
+        description: t('credential_deleted_permanently'),
+      });
+    } catch (error) {
+      toast({
+        title: t('error'),
+        description: t('delete_failed'),
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleOnboardingComplete = () => {
@@ -186,12 +280,23 @@ export default function Wallet() {
           </Button>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 gap-4">
+        {/* Search Bar */}
+        <div className="relative">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder={t('search_credentials')}
+            className="pl-10"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+
+        {/* Enhanced Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card className="gradient-card shadow-card p-4 border-border/50">
             <div className="text-center">
               <div className="text-2xl font-bold text-credverse-success">
-                {credentials.filter(c => c.status === 'valid').length}
+                {credentials.filter(c => c.status === 'valid' && !c.deleted_at).length}
               </div>
               <div className="text-sm text-muted-foreground">{t('valid_credentials')}</div>
             </div>
@@ -200,53 +305,111 @@ export default function Wallet() {
           <Card className="gradient-card shadow-card p-4 border-border/50">
             <div className="text-center">
               <div className="text-2xl font-bold text-credverse-primary">
-                {credentials.length}
+                {credentials.filter(c => !c.deleted_at).length}
               </div>
               <div className="text-sm text-muted-foreground">{t('total_stored')}</div>
             </div>
           </Card>
+
+          <Card className="gradient-card shadow-card p-4 border-border/50">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-amber-600">
+                {credentials.filter(c => (c.status === 'expired' || c.status === 'revoked') && !c.deleted_at).length}
+              </div>
+              <div className="text-sm text-muted-foreground">{t('expired_revoked')}</div>
+            </div>
+          </Card>
+
+          <Card className="gradient-card shadow-card p-4 border-border/50">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-red-600">
+                {credentials.filter(c => c.deleted_at).length}
+              </div>
+              <div className="text-sm text-muted-foreground">{t('in_trash')}</div>
+            </div>
+          </Card>
         </div>
 
-        {/* Credentials List */}
+        {/* Enhanced Credentials with Tabs */}
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-foreground">{t('your_credentials')}</h2>
-            <Button variant="ghost" size="sm" className="text-muted-foreground">
-              {t('view_all')}
-            </Button>
-          </div>
-          
-          {credentials.length > 0 ? (
-            <div className="space-y-3">
-              {credentials.map((credential) => (
-                <CredentialCard
-                  key={credential.id}
-                  credential={credential}
-                  onClick={() => handleCredentialClick(credential)}
-                />
-              ))}
-            </div>
-          ) : (
-            <Card className="gradient-card shadow-card p-8 border-border/50 text-center">
-              <div className="space-y-3">
-                <Upload size={48} className="mx-auto text-muted-foreground" />
-                <div>
-                  <h3 className="font-medium text-card-foreground">{t('no_credentials')}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {t('no_credentials_desc')}
-                  </p>
-                </div>
-                <Button 
-                  onClick={handleReceiveCredential}
-                  variant="primary"
-                  data-tour="create-wallet"
-                >
-                  <Plus size={16} className="mr-2" />
-                  {t('receive_credential')}
-                </Button>
-              </div>
-            </Card>
-          )}
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="all">
+                {t('all')} ({credentials.filter(c => !c.deleted_at).length})
+              </TabsTrigger>
+              <TabsTrigger value="valid">
+                {t('valid')} ({credentials.filter(c => c.status === 'valid' && !c.deleted_at).length})
+              </TabsTrigger>
+              <TabsTrigger value="expired">
+                {t('expired')} ({credentials.filter(c => (c.status === 'expired' || c.status === 'revoked') && !c.deleted_at).length})
+              </TabsTrigger>
+              <TabsTrigger value="trash">
+                {t('trash')} ({credentials.filter(c => c.deleted_at).length})
+              </TabsTrigger>
+            </TabsList>
+
+            {(['all', 'valid', 'expired', 'trash'] as const).map((tab) => {
+              const filteredCredentials = credentials.filter(cred => {
+                const matchesSearch = cred.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                     cred.issuer_name?.toLowerCase().includes(searchTerm.toLowerCase());
+                
+                switch (tab) {
+                  case 'valid':
+                    return matchesSearch && !cred.deleted_at && cred.status === 'valid';
+                  case 'expired':
+                    return matchesSearch && !cred.deleted_at && (cred.status === 'expired' || cred.status === 'revoked');
+                  case 'trash':
+                    return matchesSearch && cred.deleted_at;
+                  default:
+                    return matchesSearch && !cred.deleted_at;
+                }
+              });
+
+              return (
+                <TabsContent key={tab} value={tab} className="space-y-4">
+                  {filteredCredentials.length > 0 ? (
+                    <div className="space-y-3">
+                      {filteredCredentials.map((credential) => (
+                        <EnhancedCredentialCard
+                          key={credential.id}
+                          credential={credential}
+                          onShare={handleShare}
+                          onArchive={handleArchive}
+                          onRestore={handleRestore}
+                          onDelete={handleDelete}
+                          isInTrash={tab === 'trash'}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <Card className="gradient-card shadow-card p-8 border-border/50 text-center">
+                      <div className="space-y-3">
+                        <Upload size={48} className="mx-auto text-muted-foreground" />
+                        <div>
+                          <h3 className="font-medium text-card-foreground">
+                            {searchTerm ? t('no_search_results') : t('no_credentials')}
+                          </h3>
+                          <p className="text-sm text-muted-foreground">
+                            {searchTerm ? t('try_different_search') : t('no_credentials_desc')}
+                          </p>
+                        </div>
+                        {!searchTerm && tab !== 'trash' && (
+                          <Button 
+                            onClick={handleReceiveCredential}
+                            variant="primary"
+                            data-tour="create-wallet"
+                          >
+                            <Plus size={16} className="mr-2" />
+                            {t('receive_credential')}
+                          </Button>
+                        )}
+                      </div>
+                    </Card>
+                  )}
+                </TabsContent>
+              );
+            })}
+          </Tabs>
         </div>
 
         {/* Modals */}
@@ -265,6 +428,16 @@ export default function Wallet() {
           open={showShareDialog}
           onClose={() => setShowShareDialog(false)}
           credential={selectedCredential}
+        />
+
+        <EnhancedShareDialog
+          open={showEnhancedShare}
+          onClose={() => {
+            setShowEnhancedShare(false);
+            setSelectedCredential(null);
+          }}
+          credential={selectedCredential}
+          onCreateShare={handleCreateShare}
         />
 
         <OnboardingTour

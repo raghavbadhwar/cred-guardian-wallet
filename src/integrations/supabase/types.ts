@@ -50,13 +50,20 @@ export type Database = {
         Row: {
           category: string
           created_at: string
-          credential_data: Json | null
+          deleted_at: string | null
+          expires_at: string | null
+          folder_id: string | null
+          hash: string | null
           id: string
           issued_date: string
           issuer: string
           issuer_domain: string
+          issuer_name: string | null
+          payload: Json | null
           status: string
           subject: string
+          tags: string[] | null
+          title: string | null
           type: string
           updated_at: string
           user_id: string
@@ -64,13 +71,20 @@ export type Database = {
         Insert: {
           category: string
           created_at?: string
-          credential_data?: Json | null
+          deleted_at?: string | null
+          expires_at?: string | null
+          folder_id?: string | null
+          hash?: string | null
           id?: string
           issued_date: string
           issuer: string
           issuer_domain: string
+          issuer_name?: string | null
+          payload?: Json | null
           status: string
           subject: string
+          tags?: string[] | null
+          title?: string | null
           type: string
           updated_at?: string
           user_id: string
@@ -78,15 +92,43 @@ export type Database = {
         Update: {
           category?: string
           created_at?: string
-          credential_data?: Json | null
+          deleted_at?: string | null
+          expires_at?: string | null
+          folder_id?: string | null
+          hash?: string | null
           id?: string
           issued_date?: string
           issuer?: string
           issuer_domain?: string
+          issuer_name?: string | null
+          payload?: Json | null
           status?: string
           subject?: string
+          tags?: string[] | null
+          title?: string | null
           type?: string
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      folders: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
           user_id?: string
         }
         Relationships: []
@@ -162,6 +204,103 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      share_views: {
+        Row: {
+          access_code_attempt: boolean | null
+          city: string | null
+          country: string | null
+          id: number
+          ip_hash: string | null
+          ok: boolean | null
+          referrer_domain: string | null
+          share_id: string | null
+          ua_hash: string | null
+          viewed_at: string | null
+        }
+        Insert: {
+          access_code_attempt?: boolean | null
+          city?: string | null
+          country?: string | null
+          id?: number
+          ip_hash?: string | null
+          ok?: boolean | null
+          referrer_domain?: string | null
+          share_id?: string | null
+          ua_hash?: string | null
+          viewed_at?: string | null
+        }
+        Update: {
+          access_code_attempt?: boolean | null
+          city?: string | null
+          country?: string | null
+          id?: number
+          ip_hash?: string | null
+          ok?: boolean | null
+          referrer_domain?: string | null
+          share_id?: string | null
+          ua_hash?: string | null
+          viewed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "share_views_share_id_fkey"
+            columns: ["share_id"]
+            isOneToOne: false
+            referencedRelation: "shares"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shares: {
+        Row: {
+          access_code: string | null
+          created_at: string | null
+          cred_id: string | null
+          expires_at: string
+          id: string
+          max_views: number | null
+          policy: Json
+          revoked: boolean | null
+          updated_at: string | null
+          user_id: string
+          views: number | null
+        }
+        Insert: {
+          access_code?: string | null
+          created_at?: string | null
+          cred_id?: string | null
+          expires_at: string
+          id?: string
+          max_views?: number | null
+          policy?: Json
+          revoked?: boolean | null
+          updated_at?: string | null
+          user_id: string
+          views?: number | null
+        }
+        Update: {
+          access_code?: string | null
+          created_at?: string | null
+          cred_id?: string | null
+          expires_at?: string
+          id?: string
+          max_views?: number | null
+          policy?: Json
+          revoked?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+          views?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shares_cred_id_fkey"
+            columns: ["cred_id"]
+            isOneToOne: false
+            referencedRelation: "credentials"
+            referencedColumns: ["id"]
           },
         ]
       }
