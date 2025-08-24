@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./hooks/useAuth";
+import { ThemeProvider } from "next-themes";
 import Welcome from "./pages/Welcome";
 import Wallet from "./pages/Wallet";
 import CredentialDetail from "./pages/CredentialDetail";
@@ -19,16 +20,19 @@ import AccountSettings from "./pages/settings/AccountSettings";
 import SecuritySettings from "./pages/settings/SecuritySettings";
 import BackupSettings from "./pages/settings/BackupSettings";
 import DeviceSettings from "./pages/settings/DeviceSettings";
+import { TrashView } from "./components/TrashView";
+import Import from "./pages/Import";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
+    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/welcome" element={<Welcome />} />
@@ -44,12 +48,15 @@ const App = () => (
               <Route path="backup" element={<BackupSettings />} />
               <Route path="devices" element={<DeviceSettings />} />
             </Route>
+            <Route path="/wallet/trash" element={<TrashView />} />
+            <Route path="/import" element={<Import />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 

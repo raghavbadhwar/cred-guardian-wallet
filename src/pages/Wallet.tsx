@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, QrCode, Upload, Download, Share2, ExternalLink, Search } from "lucide-react";
+import { Plus, QrCode, Upload, Download, Share2, ExternalLink, Search, Trash2, Settings, FileText } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCredentials } from "@/hooks/useCredentials";
 import { useToast } from "@/hooks/use-toast";
@@ -221,6 +221,14 @@ export default function Wallet() {
     navigate('/digilocker');
   };
 
+  const navigateToImport = () => {
+    navigate('/import');
+  };
+
+  const navigateToTrash = () => {
+    navigate('/wallet/trash');
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header title={t('title')} />
@@ -248,7 +256,7 @@ export default function Wallet() {
           </Button>
         </div>
         
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-4 gap-3">
           <Button 
             onClick={() => credentials.length > 0 && handleShare(credentials[0])}
             variant="outline"
@@ -260,6 +268,35 @@ export default function Wallet() {
             <span className="text-xs">{t('present')}</span>
           </Button>
           
+          <Button 
+            onClick={navigateToImport}
+            variant="outline"
+            className="h-16 border-border/50 hover:bg-card-hover flex-col gap-1 transition-smooth"
+          >
+            <FileText size={20} />
+            <span className="text-xs">Import</span>
+          </Button>
+          
+          <Button 
+            onClick={navigateToTrash}
+            variant="outline"
+            className="h-16 border-border/50 hover:bg-card-hover flex-col gap-1 transition-smooth"
+          >
+            <Trash2 size={20} />
+            <span className="text-xs">Trash ({credentials.filter(c => c.deleted_at).length})</span>
+          </Button>
+          
+          <Button 
+            onClick={() => navigate('/settings')}
+            variant="outline"
+            className="h-16 border-border/50 hover:bg-card-hover flex-col gap-1 transition-smooth"
+          >
+            <Settings size={20} />
+            <span className="text-xs">Settings</span>
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
           <Button 
             onClick={handleBackup}
             variant="outline"
@@ -320,7 +357,10 @@ export default function Wallet() {
             </div>
           </Card>
 
-          <Card className="gradient-card shadow-card p-4 border-border/50">
+          <Card 
+            className="gradient-card shadow-card p-4 border-border/50 cursor-pointer hover:shadow-elevated transition-all"
+            onClick={navigateToTrash}
+          >
             <div className="text-center">
               <div className="text-2xl font-bold text-red-600">
                 {credentials.filter(c => c.deleted_at).length}

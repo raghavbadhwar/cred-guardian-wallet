@@ -3,9 +3,8 @@ import { Card } from '@/components/ui/card';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { useState } from 'react';
-import { useToast } from '@/hooks/use-toast';
+import { useProfile } from '@/hooks/useProfile';
+import { useTheme } from 'next-themes';
 import { 
   Globe, 
   Eye, 
@@ -15,21 +14,17 @@ import {
 
 export default function GeneralSettings() {
   const { t } = useTranslation('settings');
-  const { toast } = useToast();
-  const [settings, setSettings] = useState({
-    telemetry: false,
-    notifications: true,
-    darkMode: false,
-  });
+  const { profile, updateSettings, loading } = useProfile();
+  const { setTheme, theme } = useTheme();
 
-  const handleSettingChange = (key: string, value: boolean) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
-    localStorage.setItem(`setting_${key}`, value.toString());
+  const handleSettingChange = async (key: string, value: boolean) => {
+    if (!profile) return;
     
-    toast({
-      title: t('setting_updated'),
-      description: t('setting_updated_desc'),
-    });
+    if (key === 'darkMode') {
+      setTheme(value ? 'dark' : 'light');
+    }
+    
+    await updateSettings({ [key]: value });
   };
 
   return (
@@ -66,8 +61,9 @@ export default function GeneralSettings() {
             </p>
           </div>
           <Switch
-            checked={settings.darkMode}
+            checked={theme === 'dark'}
             onCheckedChange={(checked) => handleSettingChange('darkMode', checked)}
+            disabled={loading}
           />
         </div>
       </Card>
@@ -87,8 +83,9 @@ export default function GeneralSettings() {
             </p>
           </div>
           <Switch
-            checked={settings.notifications}
+            checked={profile?.settings?.notifications ?? true}
             onCheckedChange={(checked) => handleSettingChange('notifications', checked)}
+            disabled={loading}
           />
         </div>
       </Card>
@@ -108,8 +105,9 @@ export default function GeneralSettings() {
             </p>
           </div>
           <Switch
-            checked={settings.telemetry}
+            checked={profile?.settings?.telemetry ?? false}
             onCheckedChange={(checked) => handleSettingChange('telemetry', checked)}
+            disabled={loading}
           />
         </div>
       </Card>
