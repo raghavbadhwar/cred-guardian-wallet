@@ -5,6 +5,8 @@ import { Header } from "@/components/Header";
 import { CredentialCard } from "@/components/CredentialCard";
 import { EnhancedCredentialCard } from "@/components/EnhancedCredentialCard";
 import { EnhancedReceiveButton } from "@/components/EnhancedReceiveButton";
+import { WalletActionCard } from "@/components/WalletActionCard";
+import { WalletStatsCard } from "@/components/WalletStatsCard";
 import { QRScanner } from "@/components/QRScanner";
 import { BackupDialog } from "@/components/BackupDialog";
 import { OnboardingTour } from "@/components/OnboardingTour";
@@ -14,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, QrCode, Upload, Download, Share2, ExternalLink, Search, Trash2, Settings, FileText } from "lucide-react";
+import { Plus, QrCode, Upload, Download, Share2, ExternalLink, Search, Trash2, Settings, FileText, Award, Shield, Calendar, Archive } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCredentials } from "@/hooks/useCredentials";
 import { useToast } from "@/hooks/use-toast";
@@ -228,154 +230,153 @@ export default function Wallet() {
     <div className="min-h-screen bg-background">
       <Header title={t('title')} />
       
-      <div className="p-4 space-y-6">
-        {/* Quick Actions */}
-        <div className="grid grid-cols-2 gap-3">
-          <EnhancedReceiveButton
-            onImportComplete={handleImportComplete}
-            onNavigateToDigiLocker={navigateToDigiLocker}
-            onNavigateToImport={navigateToImport}
-          />
+      <div className="p-4 space-y-8">
+        {/* Hero Section with Primary Actions */}
+        <div className="space-y-4">
+          <div className="text-center space-y-2">
+            <h1 className="text-2xl font-bold text-foreground">Your Digital Wallet</h1>
+            <p className="text-muted-foreground">Securely store and manage your credentials</p>
+          </div>
           
-          <Button 
-            onClick={handleQRScan}
-            variant="outline"
-            className="h-16 border-border/50 hover:bg-card-hover flex-col gap-1 transition-smooth group"
-          >
-            <QrCode size={20} className="group-hover:scale-110 transition-smooth" />
-            <span className="text-xs">{t('scan_qr')}</span>
-          </Button>
+          {/* Primary Action Cards */}
+          <div className="grid grid-cols-2 gap-4">
+            <EnhancedReceiveButton
+              onImportComplete={handleImportComplete}
+              onNavigateToDigiLocker={navigateToDigiLocker}
+              onNavigateToImport={navigateToImport}
+            />
+            
+            <WalletActionCard
+              title={t('scan_qr')}
+              description="Scan QR codes"
+              icon={QrCode}
+              onClick={handleQRScan}
+              variant="primary"
+              size="lg"
+            />
+          </div>
+        </div>
+
+        {/* Statistics Dashboard */}
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold text-foreground">Wallet Overview</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <WalletStatsCard
+              title="Valid Credentials"
+              value={credentials.filter(c => c.status === 'valid' && !c.deleted_at).length}
+              icon={Shield}
+              variant="success"
+              trend="up"
+              trendValue="+2 this week"
+            />
+            
+            <WalletStatsCard
+              title="Total Stored"
+              value={credentials.filter(c => !c.deleted_at).length}
+              icon={Award}
+              variant="primary"
+            />
+
+            <WalletStatsCard
+              title="Expired/Revoked"
+              value={credentials.filter(c => (c.status === 'expired' || c.status === 'revoked') && !c.deleted_at).length}
+              icon={Calendar}
+              variant="warning"
+            />
+
+            <WalletStatsCard
+              title="In Trash"
+              value={credentials.filter(c => c.deleted_at).length}
+              icon={Archive}
+              variant="danger"
+              onClick={navigateToTrash}
+            />
+          </div>
         </div>
         
-        <div className="grid grid-cols-4 gap-3">
-          <Button 
-            onClick={() => credentials.length > 0 && handleShare(credentials[0])}
-            variant="outline"
-            className="h-16 border-border/50 hover:bg-card-hover flex-col gap-1 transition-smooth"
-            data-tour="present"
-            disabled={credentials.length === 0}
-          >
-            <Share2 size={20} />
-            <span className="text-xs">{t('present')}</span>
-          </Button>
+        {/* Quick Actions Grid */}
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold text-foreground">Quick Actions</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <WalletActionCard
+              title={t('present')}
+              description="Share credentials"
+              icon={Share2}
+              onClick={() => credentials.length > 0 && handleShare(credentials[0])}
+              disabled={credentials.length === 0}
+              data-tour="present"
+            />
+            
+            <WalletActionCard
+              title="Import"
+              description="Add credentials"
+              icon={FileText}
+              onClick={navigateToImport}
+            />
+            
+            <WalletActionCard
+              title={t('backup')}
+              description="Export wallet"
+              icon={Download}
+              onClick={handleBackup}
+              data-tour="backup"
+            />
+            
+            <WalletActionCard
+              title="Settings"
+              description="Manage account"
+              icon={Settings}
+              onClick={() => navigate('/settings')}
+            />
+          </div>
           
-          <Button 
-            onClick={navigateToImport}
-            variant="outline"
-            className="h-16 border-border/50 hover:bg-card-hover flex-col gap-1 transition-smooth"
-          >
-            <FileText size={20} />
-            <span className="text-xs">Import</span>
-          </Button>
-          
-          <Button 
-            onClick={navigateToTrash}
-            variant="outline"
-            className="h-16 border-border/50 hover:bg-card-hover flex-col gap-1 transition-smooth"
-          >
-            <Trash2 size={20} />
-            <span className="text-xs">Trash ({credentials.filter(c => c.deleted_at).length})</span>
-          </Button>
-          
-          <Button 
-            onClick={() => navigate('/settings')}
-            variant="outline"
-            className="h-16 border-border/50 hover:bg-card-hover flex-col gap-1 transition-smooth"
-          >
-            <Settings size={20} />
-            <span className="text-xs">Settings</span>
-          </Button>
+          <div className="grid grid-cols-2 gap-3">
+            <WalletActionCard
+              title="DigiLocker"
+              description="Connect account"
+              icon={ExternalLink}
+              onClick={navigateToDigiLocker}
+            />
+            
+            <WalletActionCard
+              title="Trash"
+              description="Deleted items"
+              icon={Trash2}
+              onClick={navigateToTrash}
+              badge={credentials.filter(c => c.deleted_at).length}
+            />
+          </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <Button 
-            onClick={handleBackup}
-            variant="outline"
-            className="h-16 border-border/50 hover:bg-card-hover flex-col gap-1 transition-smooth"
-            data-tour="backup"
-          >
-            <Download size={20} />
-            <span className="text-xs">{t('backup')}</span>
-          </Button>
-          
-          <Button 
-            onClick={navigateToDigiLocker}
-            variant="outline"
-            className="h-16 border-border/50 hover:bg-card-hover flex-col gap-1 transition-smooth"
-          >
-            <ExternalLink size={20} />
-            <span className="text-xs">DigiLocker</span>
-          </Button>
-        </div>
-
-        {/* Search Bar */}
-        <div className="relative">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder={t('search_credentials')}
-            className="pl-10"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-
-        {/* Enhanced Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="gradient-card shadow-card p-4 border-border/50">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-credverse-success">
-                {credentials.filter(c => c.status === 'valid' && !c.deleted_at).length}
-              </div>
-              <div className="text-sm text-muted-foreground">{t('valid_credentials')}</div>
-            </div>
-          </Card>
-          
-          <Card className="gradient-card shadow-card p-4 border-border/50">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-credverse-primary">
-                {credentials.filter(c => !c.deleted_at).length}
-              </div>
-              <div className="text-sm text-muted-foreground">{t('total_stored')}</div>
-            </div>
-          </Card>
-
-          <Card className="gradient-card shadow-card p-4 border-border/50">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-amber-600">
-                {credentials.filter(c => (c.status === 'expired' || c.status === 'revoked') && !c.deleted_at).length}
-              </div>
-              <div className="text-sm text-muted-foreground">{t('expired_revoked')}</div>
-            </div>
-          </Card>
-
-          <Card 
-            className="gradient-card shadow-card p-4 border-border/50 cursor-pointer hover:shadow-elevated transition-all"
-            onClick={navigateToTrash}
-          >
-            <div className="text-center">
-              <div className="text-2xl font-bold text-red-600">
-                {credentials.filter(c => c.deleted_at).length}
-              </div>
-              <div className="text-sm text-muted-foreground">{t('in_trash')}</div>
-            </div>
-          </Card>
+        {/* Enhanced Search */}
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold text-foreground">Your Credentials</h2>
+          <div className="relative">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search credentials by name, issuer, or type..."
+              className="pl-10 h-12 bg-card/50 border-border/50 focus:border-primary/50 transition-colors"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
         </div>
 
         {/* Enhanced Credentials with Tabs */}
         <div className="space-y-4">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="all">
-                {t('all')} ({credentials.filter(c => !c.deleted_at).length})
+            <TabsList className="grid w-full grid-cols-4 bg-card/50 border border-border/50">
+              <TabsTrigger value="all" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                All ({credentials.filter(c => !c.deleted_at).length})
               </TabsTrigger>
-              <TabsTrigger value="valid">
-                {t('valid')} ({credentials.filter(c => c.status === 'valid' && !c.deleted_at).length})
+              <TabsTrigger value="valid" className="data-[state=active]:bg-success data-[state=active]:text-success-foreground">
+                Valid ({credentials.filter(c => c.status === 'valid' && !c.deleted_at).length})
               </TabsTrigger>
-              <TabsTrigger value="expired">
-                {t('expired')} ({credentials.filter(c => (c.status === 'expired' || c.status === 'revoked') && !c.deleted_at).length})
+              <TabsTrigger value="expired" className="data-[state=active]:bg-warning data-[state=active]:text-warning-foreground">
+                Expired ({credentials.filter(c => (c.status === 'expired' || c.status === 'revoked') && !c.deleted_at).length})
               </TabsTrigger>
-              <TabsTrigger value="trash">
-                {t('trash')} ({credentials.filter(c => c.deleted_at).length})
+              <TabsTrigger value="trash" className="data-[state=active]:bg-danger data-[state=active]:text-danger-foreground">
+                Trash ({credentials.filter(c => c.deleted_at).length})
               </TabsTrigger>
             </TabsList>
 
@@ -413,24 +414,32 @@ export default function Wallet() {
                       ))}
                     </div>
                   ) : (
-                    <Card className="gradient-card shadow-card p-8 border-border/50 text-center">
-                      <div className="space-y-3">
-                        <Upload size={48} className="mx-auto text-muted-foreground" />
-                        <div>
-                          <h3 className="font-medium text-card-foreground">
-                            {searchTerm ? t('no_search_results') : t('no_credentials')}
+                    <Card className="gradient-card shadow-card p-12 border-border/50 text-center">
+                      <div className="space-y-6 max-w-sm mx-auto">
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent rounded-full blur-3xl" />
+                          <Upload size={64} className="mx-auto text-muted-foreground relative z-10" />
+                        </div>
+                        <div className="space-y-2">
+                          <h3 className="text-xl font-semibold text-foreground">
+                            {searchTerm ? "No matches found" : "No credentials yet"}
                           </h3>
-                          <p className="text-sm text-muted-foreground">
-                            {searchTerm ? t('try_different_search') : t('no_credentials_desc')}
+                          <p className="text-muted-foreground leading-relaxed">
+                            {searchTerm 
+                              ? "Try adjusting your search terms or browse all credentials" 
+                              : "Start building your digital credential collection"
+                            }
                           </p>
                         </div>
                         {!searchTerm && tab !== 'trash' && (
-                          <EnhancedReceiveButton
-                            onImportComplete={handleImportComplete}
-                            onNavigateToDigiLocker={navigateToDigiLocker}
-                            onNavigateToImport={navigateToImport}
-                            className="inline-block"
-                          />
+                          <div className="pt-4">
+                            <EnhancedReceiveButton
+                              onImportComplete={handleImportComplete}
+                              onNavigateToDigiLocker={navigateToDigiLocker}
+                              onNavigateToImport={navigateToImport}
+                              className="inline-block"
+                            />
+                          </div>
                         )}
                       </div>
                     </Card>
