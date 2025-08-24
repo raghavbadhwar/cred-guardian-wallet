@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Header } from '@/components/Header';
@@ -12,71 +12,135 @@ import {
   GraduationCap, 
   Award,
   CheckCircle,
-  Loader2
+  Loader2,
+  Shield,
+  Wifi,
+  WifiOff
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useCredentials } from '@/hooks/useCredentials';
-
-interface DigiLockerDocument {
-  id: string;
-  type: string;
-  title: string;
-  issuer: string;
-  issuedDate: string;
-  category: 'degree' | 'certificate' | 'transcript' | 'diploma';
-}
-
-const mockDocuments: DigiLockerDocument[] = [
-  {
-    id: 'du-bcom-2024',
-    type: 'Bachelor of Commerce',
-    title: 'B.Com Degree Certificate',
-    issuer: 'University of Delhi',
-    issuedDate: '2024-05-15',
-    category: 'degree'
-  },
-  {
-    id: 'iit-btech-2023',
-    type: 'B.Tech (CSE)',
-    title: 'Bachelor of Technology Degree',
-    issuer: 'IIT Delhi',
-    issuedDate: '2023-07-20',
-    category: 'degree'
-  },
-  {
-    id: 'cbse-12th-2020',
-    type: 'Class XII Certificate',
-    title: 'Senior Secondary Certificate',
-    issuer: 'Central Board of Secondary Education',
-    issuedDate: '2020-06-30',
-    category: 'certificate'
-  }
-];
+import { useDigiLocker, DigiLockerDocument } from '@/hooks/useDigiLocker';
 
 export default function DigiLocker() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { toast } = useToast();
   const { addCredential } = useCredentials();
+  const digiLocker = useDigiLocker();
   
   const [step, setStep] = useState<'connect' | 'select' | 'preview'>('connect');
-  const [isConnecting, setIsConnecting] = useState(false);
   const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
+  const [documents, setDocuments] = useState<DigiLockerDocument[]>([]);
   const [isImporting, setIsImporting] = useState(false);
+  const [isLiveMode, setIsLiveMode] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    // Check if user already has a connection
+    checkExistingConnection();
+  }, []);
+
+  const checkExistingConnection = async () => {
+    const connection = await digiLocker.getConnection();
+    if (connection) {
+      // Check if connection is still valid
+      const expiresAt = new Date(connection.expires_at);
+      const now = new Date();
+      
+      if (now < expiresAt) {
+        setStep('select');
+        await loadDocuments();
+      } else {
+        toast({
+          title: 'Connection Expired',
+          description: 'Your DigiLocker connection has expired. Please reconnect.',
+          variant: 'destructive'
+        });
+      }
+    }
+  };
+
+  const loadDocuments = async () => {
+    const docs = await digiLocker.fetchDocuments();
+    setDocuments(docs);
+    
+    // Check if we're in live mode based on response
+    setIsLiveMode(!docs.some((doc: any) => doc.id?.startsWith('mock-')));
+  };
 
   const handleConnect = async () => {
-    setIsConnecting(true);
+    const result = await digiLocker.initiateOAuth();
     
-    // Simulate OAuth flow
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    if (!result) return;
     
-    setIsConnecting(false);
-    setStep('select');
+    if (result.authUrl === 'sandbox') {
+      // Simulate sandbox connection
+      setIsLiveMode(false);
+      setStep('select');
+      
+      // Load mock documents
+      const mockDocs: DigiLockerDocument[] = [
+        {
+          id: 'mock-aadhaar-2024',
+          name: 'Aadhaar Card (Masked)',
+          type: 'AADHAAR',
+          issuer: 'Unique Identification Authority of India',
+          issued_date: '2024-01-15',
+          metadata: { category: 'certificate', verified: true }
+        },
+        {
+          id: 'mock-pan-2023',
+          name: 'Permanent Account Number',
+          type: 'PAN',
+          issuer: 'Income Tax Department',
+          issued_date: '2023-08-20',
+          metadata: { category: 'certificate', verified: true }
+        },
+        {
+          id: 'mock-degree-2024',
+          name: 'Bachelor of Technology Degree',
+          type: 'DEGREE',
+          issuer: 'National Institute of Technology',
+          issued_date: '2024-06-30',
+          metadata: { category: 'degree', verified: true }
+        }
+      ];
+      
+      setDocuments(mockDocs);
+      
+      toast({
+        title: 'Sandbox Mode Active',
+        description: 'Connected to DigiLocker sandbox - using mock data',
+      });
+      
+      return;
+    }
     
-    toast({
-      title: t('success', { ns: 'common' }),
-      description: 'Connected to DigiLocker successfully',
-    });
+    // Redirect to real DigiLocker OAuth
+    setIsLiveMode(true);
+    window.location.href = result.authUrl;
+  };
+
+  // Handle OAuth callback (for when user returns from DigiLocker)
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+    const state = urlParams.get('state');
+    
+    if (code && state) {
+      handleOAuthCallback(code, state);
+    }
+  }, []);
+
+  const handleOAuthCallback = async (code: string, state: string) => {
+    const success = await digiLocker.handleOAuthCallback(code, state);
+    
+    if (success) {
+      setStep('select');
+      await loadDocuments();
+      
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
   };
 
   const handleDocumentToggle = (docId: string) => {
@@ -105,20 +169,22 @@ export default function DigiLocker() {
     try {
       // Import selected documents
       for (const docId of selectedDocs) {
-        const doc = mockDocuments.find(d => d.id === docId);
+        const doc = documents.find(d => d.id === docId);
         if (doc) {
           await addCredential({
             type: doc.type,
             issuer: doc.issuer,
-            issuerDomain: doc.issuer.toLowerCase().replace(/\s+/g, '.') + '.gov.in',
-            subject: doc.title,
-            issuedDate: doc.issuedDate,
+            issuerDomain: generateIssuerDomain(doc.issuer),
+            subject: doc.name,
+            issuedDate: doc.issued_date,
             status: 'valid',
-            category: doc.category,
+            category: doc.metadata.category,
             credentialData: {
               source: 'digilocker',
               documentId: doc.id,
-              importedAt: new Date().toISOString()
+              importedAt: new Date().toISOString(),
+              liveMode: isLiveMode,
+              originalData: doc.metadata.original_data
             }
           });
         }
@@ -141,6 +207,13 @@ export default function DigiLocker() {
     }
   };
 
+  const generateIssuerDomain = (issuer: string): string => {
+    return issuer.toLowerCase()
+      .replace(/[^a-z0-9\s]/g, '')
+      .replace(/\s+/g, '.')
+      .replace(/^\.+|\.+$/g, '') + '.gov.in';
+  };
+
   const getDocumentIcon = (category: string) => {
     switch (category) {
       case 'degree': return <GraduationCap className="w-5 h-5 text-blue-500" />;
@@ -151,7 +224,7 @@ export default function DigiLocker() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header title="DigiLocker Import (Beta)" />
+      <Header title="DigiLocker Import" />
       
       <div className="p-4 space-y-6 max-w-2xl mx-auto">
         {step === 'connect' && (
@@ -168,23 +241,38 @@ export default function DigiLocker() {
                 </p>
               </div>
               
-              <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                Beta Feature
-              </Badge>
+              <div className="flex items-center justify-center space-x-2">
+                {isLiveMode === null ? (
+                  <Badge variant="secondary" className="bg-gray-100 text-gray-800">
+                    <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                    Checking Status
+                  </Badge>
+                ) : isLiveMode ? (
+                  <Badge variant="secondary" className="bg-green-100 text-green-800">
+                    <Wifi className="w-3 h-3 mr-1" />
+                    Live Mode
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+                    <WifiOff className="w-3 h-3 mr-1" />
+                    Sandbox Mode
+                  </Badge>
+                )}
+              </div>
               
               <Button 
                 onClick={handleConnect} 
-                disabled={isConnecting}
+                disabled={digiLocker.connecting}
                 className="w-full"
               >
-                {isConnecting ? (
+                {digiLocker.connecting ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     Connecting...
                   </>
                 ) : (
                   <>
-                    <ExternalLink className="w-4 h-4 mr-2" />
+                    <Shield className="w-4 h-4 mr-2" />
                     Connect DigiLocker Account
                   </>
                 )}
@@ -192,7 +280,10 @@ export default function DigiLocker() {
               
               <div className="bg-muted/50 p-3 rounded-lg">
                 <p className="text-xs text-muted-foreground">
-                  This is a beta feature. Only sandbox documents are available in development.
+                  {isLiveMode === false ? 
+                    'API credentials not configured - using sandbox with mock documents.' :
+                    'Your documents will be imported securely and stored encrypted.'
+                  }
                 </p>
               </div>
             </Card>
@@ -206,10 +297,27 @@ export default function DigiLocker() {
               <p className="text-muted-foreground">
                 Choose which documents you'd like to import to your wallet
               </p>
+              {isLiveMode !== null && (
+                <div className="mt-2 flex items-center justify-center">
+                  <Badge variant="outline" className={isLiveMode ? "border-green-500" : "border-orange-500"}>
+                    {isLiveMode ? (
+                      <>
+                        <Wifi className="w-3 h-3 mr-1" />
+                        Live DigiLocker Data
+                      </>
+                    ) : (
+                      <>
+                        <WifiOff className="w-3 h-3 mr-1" />
+                        Sandbox Mode
+                      </>
+                    )}
+                  </Badge>
+                </div>
+              )}
             </div>
             
             <div className="space-y-3">
-              {mockDocuments.map((doc) => (
+              {documents.map((doc) => (
                 <Card key={doc.id} className="p-4">
                   <div className="flex items-start space-x-3">
                     <Checkbox
@@ -220,16 +328,24 @@ export default function DigiLocker() {
                     
                     <div className="flex-1 space-y-2">
                       <div className="flex items-center space-x-2">
-                        {getDocumentIcon(doc.category)}
-                        <h3 className="font-medium">{doc.title}</h3>
+                        {getDocumentIcon(doc.metadata.category)}
+                        <h3 className="font-medium">{doc.name}</h3>
                       </div>
                       
                       <div className="text-sm text-muted-foreground">
                         <p>{doc.issuer}</p>
-                        <p>Issued: {new Date(doc.issuedDate).toLocaleDateString()}</p>
+                        <p>Issued: {new Date(doc.issued_date).toLocaleDateString()}</p>
                       </div>
                       
-                      <Badge variant="outline">{doc.category}</Badge>
+                      <div className="flex space-x-2">
+                        <Badge variant="outline">{doc.metadata.category}</Badge>
+                        {doc.metadata.verified && (
+                          <Badge variant="secondary" className="bg-green-100 text-green-800">
+                            <CheckCircle className="w-3 h-3 mr-1" />
+                            Verified
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </Card>
@@ -258,7 +374,7 @@ export default function DigiLocker() {
             
             <div className="space-y-3">
               {selectedDocs.map((docId) => {
-                const doc = mockDocuments.find(d => d.id === docId);
+                const doc = documents.find(d => d.id === docId);
                 if (!doc) return null;
                 
                 return (
@@ -266,9 +382,9 @@ export default function DigiLocker() {
                     <div className="flex items-center space-x-3">
                       <CheckCircle className="w-5 h-5 text-green-500" />
                       <div className="flex-1">
-                        <h3 className="font-medium">{doc.title}</h3>
+                        <h3 className="font-medium">{doc.name}</h3>
                         <p className="text-sm text-muted-foreground">{doc.issuer}</p>
-                        <Badge variant="outline" className="mt-1">{doc.category}</Badge>
+                        <Badge variant="outline" className="mt-1">{doc.metadata.category}</Badge>
                       </div>
                     </div>
                   </Card>

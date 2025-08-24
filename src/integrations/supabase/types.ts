@@ -148,6 +148,84 @@ export type Database = {
         }
         Relationships: []
       }
+      digilocker_connections: {
+        Row: {
+          access_token: string
+          created_at: string
+          expires_at: string
+          id: string
+          last_sync_at: string | null
+          refresh_token: string | null
+          scope: string | null
+          subject_id: string | null
+          token_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          last_sync_at?: string | null
+          refresh_token?: string | null
+          scope?: string | null
+          subject_id?: string | null
+          token_type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          last_sync_at?: string | null
+          refresh_token?: string | null
+          scope?: string | null
+          subject_id?: string | null
+          token_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      digilocker_imports: {
+        Row: {
+          created_at: string
+          doc_id: string
+          doc_type: string | null
+          id: string
+          issued_at: string | null
+          issuer: string | null
+          raw_metadata: Json
+          title: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          doc_id: string
+          doc_type?: string | null
+          id?: string
+          issued_at?: string | null
+          issuer?: string | null
+          raw_metadata?: Json
+          title?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          doc_id?: string
+          doc_type?: string | null
+          id?: string
+          issued_at?: string | null
+          issuer?: string | null
+          raw_metadata?: Json
+          title?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       folders: {
         Row: {
           created_at: string | null
