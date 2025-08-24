@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string | null
+          id: string
+          ip_address: unknown | null
+          metadata: Json | null
+          resource_id: string | null
+          resource_type: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          resource_id?: string | null
+          resource_type?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          resource_id?: string | null
+          resource_type?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       backups: {
         Row: {
           created_at: string | null
@@ -133,6 +169,39 @@ export type Database = {
         }
         Relationships: []
       }
+      imports: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          metadata: Json | null
+          source: string
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          source: string
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          source?: string
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -142,6 +211,8 @@ export type Database = {
           id: string
           language: string | null
           recovery_email: string | null
+          security_preferences: Json | null
+          settings: Json | null
           updated_at: string
           user_id: string
         }
@@ -153,6 +224,8 @@ export type Database = {
           id?: string
           language?: string | null
           recovery_email?: string | null
+          security_preferences?: Json | null
+          settings?: Json | null
           updated_at?: string
           user_id: string
         }
@@ -164,6 +237,8 @@ export type Database = {
           id?: string
           language?: string | null
           recovery_email?: string | null
+          security_preferences?: Json | null
+          settings?: Json | null
           updated_at?: string
           user_id?: string
         }
@@ -204,6 +279,44 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      share_analytics: {
+        Row: {
+          id: string
+          location_data: Json | null
+          share_id: string | null
+          verification_result: Json | null
+          viewed_at: string | null
+          viewer_ip_hash: string | null
+          viewer_user_agent: string | null
+        }
+        Insert: {
+          id?: string
+          location_data?: Json | null
+          share_id?: string | null
+          verification_result?: Json | null
+          viewed_at?: string | null
+          viewer_ip_hash?: string | null
+          viewer_user_agent?: string | null
+        }
+        Update: {
+          id?: string
+          location_data?: Json | null
+          share_id?: string | null
+          verification_result?: Json | null
+          viewed_at?: string | null
+          viewer_ip_hash?: string | null
+          viewer_user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "share_analytics_share_id_fkey"
+            columns: ["share_id"]
+            isOneToOne: false
+            referencedRelation: "shares"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -260,11 +373,13 @@ export type Database = {
           created_at: string | null
           cred_id: string | null
           expires_at: string
+          geographic_restrictions: Json | null
           id: string
           max_views: number | null
           policy: Json
           revoked: boolean | null
           updated_at: string | null
+          usage_analytics: Json | null
           user_id: string
           views: number | null
         }
@@ -273,11 +388,13 @@ export type Database = {
           created_at?: string | null
           cred_id?: string | null
           expires_at: string
+          geographic_restrictions?: Json | null
           id?: string
           max_views?: number | null
           policy?: Json
           revoked?: boolean | null
           updated_at?: string | null
+          usage_analytics?: Json | null
           user_id: string
           views?: number | null
         }
@@ -286,11 +403,13 @@ export type Database = {
           created_at?: string | null
           cred_id?: string | null
           expires_at?: string
+          geographic_restrictions?: Json | null
           id?: string
           max_views?: number | null
           policy?: Json
           revoked?: boolean | null
           updated_at?: string | null
+          usage_analytics?: Json | null
           user_id?: string
           views?: number | null
         }
@@ -304,12 +423,102 @@ export type Database = {
           },
         ]
       }
+      verifications: {
+        Row: {
+          created_at: string | null
+          credential_id: string | null
+          id: string
+          share_id: string | null
+          verification_data: Json | null
+          verification_status: string | null
+          verifier_ip_hash: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          credential_id?: string | null
+          id?: string
+          share_id?: string | null
+          verification_data?: Json | null
+          verification_status?: string | null
+          verifier_ip_hash?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          credential_id?: string | null
+          id?: string
+          share_id?: string | null
+          verification_data?: Json | null
+          verification_status?: string | null
+          verifier_ip_hash?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "verifications_credential_id_fkey"
+            columns: ["credential_id"]
+            isOneToOne: false
+            referencedRelation: "credentials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "verifications_share_id_fkey"
+            columns: ["share_id"]
+            isOneToOne: false
+            referencedRelation: "shares"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      gtrgm_compress: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_decompress: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_in: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_options: {
+        Args: { "": unknown }
+        Returns: undefined
+      }
+      gtrgm_out: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      log_user_action: {
+        Args: {
+          p_action: string
+          p_metadata?: Json
+          p_resource_id?: string
+          p_resource_type?: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
+      set_limit: {
+        Args: { "": number }
+        Returns: number
+      }
+      show_limit: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      show_trgm: {
+        Args: { "": string }
+        Returns: string[]
+      }
+      update_share_analytics: {
+        Args: { p_analytics_data: Json; p_share_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
