@@ -1,0 +1,22 @@
+{
+  "title": "My Credentials",
+  "receive": "Receive",
+  "scan_qr": "Scan QR",
+  "backup": "Backup",
+  "present": "Present / Share",
+  "valid_credentials": "Valid Credentials",
+  "total_stored": "Total Stored",
+  "your_credentials": "Your Credentials",
+  "view_all": "View All",
+  "no_credentials": "No credentials yet",
+  "no_credentials_desc": "Receive your first credential to get started",
+  "receive_credential": "Receive Credential",
+  "create_wallet": "Create your wallet",
+  "create_wallet_desc": "We'll generate a secure identity on your device. No crypto jargon, just a secure account.",
+  "add_credentials": "Add credentials",
+  "add_credentials_desc": "Import from file, paste token, scan QR, or use DigiLocker (beta).",
+  "share_safely": "Share safely",
+  "share_safely_desc": "Create a time-limited QR to share only what's needed.",
+  "backup_keys": "Back up keys",
+  "backup_keys_desc": "Export an encrypted backup so you never lose access."
+}

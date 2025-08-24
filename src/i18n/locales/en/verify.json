@@ -1,0 +1,21 @@
+{
+  "title": "Verify Credential",
+  "scan_tab": "Scan",
+  "paste_tab": "Paste",
+  "upload_tab": "Upload",
+  "scan_qr_prompt": "Scan a QR code to verify",
+  "paste_prompt": "Paste credential data or URL",
+  "upload_prompt": "Upload credential file",
+  "verify_button": "Verify",
+  "verified": "Verified",
+  "invalid": "Invalid",
+  "expired": "Expired",
+  "revoked": "Revoked",
+  "trusted": "Trusted",
+  "untrusted": "Untrusted",
+  "diagnostics": "Diagnostics",
+  "issuer_info": "Issuer Information",
+  "signature_valid": "Signature Valid",
+  "trust_registry": "Trust Registry",
+  "revocation_status": "Revocation Status"
+}

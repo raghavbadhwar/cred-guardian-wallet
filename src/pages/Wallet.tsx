@@ -1,24 +1,39 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Header } from "@/components/Header";
 import { CredentialCard } from "@/components/CredentialCard";
 import { QRScanner } from "@/components/QRScanner";
 import { BackupDialog } from "@/components/BackupDialog";
+import { OnboardingTour } from "@/components/OnboardingTour";
+import { ShareDialog } from "@/components/ShareDialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Plus, QrCode, Upload, Download } from "lucide-react";
+import { Plus, QrCode, Upload, Download, Share2, ExternalLink } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCredentials } from "@/hooks/useCredentials";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Wallet() {
   const navigate = useNavigate();
+  const { t } = useTranslation('wallet');
   const { user, loading: authLoading } = useAuth();
   const { credentials, loading: credentialsLoading, addCredential } = useCredentials();
   const { toast } = useToast();
   
   const [showQRScanner, setShowQRScanner] = useState(false);
   const [showBackupDialog, setShowBackupDialog] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
+  const [selectedCredential, setSelectedCredential] = useState<any>(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  // Check if this is the first visit
+  useEffect(() => {
+    const hasSeenOnboarding = localStorage.getItem('hasSeenOnboarding');
+    if (!hasSeenOnboarding && user) {
+      setShowOnboarding(true);
+    }
+  }, [user]);
 
   // Redirect to auth if not logged in
   useEffect(() => {
@@ -98,20 +113,35 @@ export default function Wallet() {
     setShowBackupDialog(true);
   };
 
+  const handleShare = (credential: any) => {
+    setSelectedCredential(credential);
+    setShowShareDialog(true);
+  };
+
+  const handleOnboardingComplete = () => {
+    setShowOnboarding(false);
+    localStorage.setItem('hasSeenOnboarding', 'true');
+  };
+
+  const navigateToDigiLocker = () => {
+    navigate('/digilocker');
+  };
+
   return (
     <div className="min-h-screen bg-background">
-      <Header title="My Credentials" />
+      <Header title={t('title')} />
       
       <div className="p-4 space-y-6">
         {/* Quick Actions */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <Button 
             onClick={handleReceiveCredential}
             variant="primary"
             className="h-16 flex-col gap-1"
+            data-tour="receive"
           >
             <Plus size={20} />
-            <span className="text-xs">Receive</span>
+            <span className="text-xs">{t('receive')}</span>
           </Button>
           
           <Button 
@@ -120,16 +150,39 @@ export default function Wallet() {
             className="h-16 border-border/50 hover:bg-card-hover flex-col gap-1 transition-smooth"
           >
             <QrCode size={20} />
-            <span className="text-xs">Scan QR</span>
+            <span className="text-xs">{t('scan_qr')}</span>
+          </Button>
+        </div>
+        
+        <div className="grid grid-cols-3 gap-3">
+          <Button 
+            onClick={() => credentials.length > 0 && handleShare(credentials[0])}
+            variant="outline"
+            className="h-16 border-border/50 hover:bg-card-hover flex-col gap-1 transition-smooth"
+            data-tour="present"
+            disabled={credentials.length === 0}
+          >
+            <Share2 size={20} />
+            <span className="text-xs">{t('present')}</span>
           </Button>
           
           <Button 
             onClick={handleBackup}
             variant="outline"
             className="h-16 border-border/50 hover:bg-card-hover flex-col gap-1 transition-smooth"
+            data-tour="backup"
           >
             <Download size={20} />
-            <span className="text-xs">Backup</span>
+            <span className="text-xs">{t('backup')}</span>
+          </Button>
+          
+          <Button 
+            onClick={navigateToDigiLocker}
+            variant="outline"
+            className="h-16 border-border/50 hover:bg-card-hover flex-col gap-1 transition-smooth"
+          >
+            <ExternalLink size={20} />
+            <span className="text-xs">DigiLocker</span>
           </Button>
         </div>
 
@@ -140,7 +193,7 @@ export default function Wallet() {
               <div className="text-2xl font-bold text-credverse-success">
                 {credentials.filter(c => c.status === 'valid').length}
               </div>
-              <div className="text-sm text-muted-foreground">Valid Credentials</div>
+              <div className="text-sm text-muted-foreground">{t('valid_credentials')}</div>
             </div>
           </Card>
           
@@ -149,7 +202,7 @@ export default function Wallet() {
               <div className="text-2xl font-bold text-credverse-primary">
                 {credentials.length}
               </div>
-              <div className="text-sm text-muted-foreground">Total Stored</div>
+              <div className="text-sm text-muted-foreground">{t('total_stored')}</div>
             </div>
           </Card>
         </div>
@@ -157,9 +210,9 @@ export default function Wallet() {
         {/* Credentials List */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-foreground">Your Credentials</h2>
+            <h2 className="text-lg font-semibold text-foreground">{t('your_credentials')}</h2>
             <Button variant="ghost" size="sm" className="text-muted-foreground">
-              View All
+              {t('view_all')}
             </Button>
           </div>
           
@@ -178,17 +231,18 @@ export default function Wallet() {
               <div className="space-y-3">
                 <Upload size={48} className="mx-auto text-muted-foreground" />
                 <div>
-                  <h3 className="font-medium text-card-foreground">No credentials yet</h3>
+                  <h3 className="font-medium text-card-foreground">{t('no_credentials')}</h3>
                   <p className="text-sm text-muted-foreground">
-                    Receive your first credential to get started
+                    {t('no_credentials_desc')}
                   </p>
                 </div>
                 <Button 
                   onClick={handleReceiveCredential}
                   variant="primary"
+                  data-tour="create-wallet"
                 >
                   <Plus size={16} className="mr-2" />
-                  Receive Credential
+                  {t('receive_credential')}
                 </Button>
               </div>
             </Card>
@@ -205,6 +259,17 @@ export default function Wallet() {
         <BackupDialog
           open={showBackupDialog}
           onClose={() => setShowBackupDialog(false)}
+        />
+        
+        <ShareDialog
+          open={showShareDialog}
+          onClose={() => setShowShareDialog(false)}
+          credential={selectedCredential}
+        />
+
+        <OnboardingTour
+          run={showOnboarding}
+          onComplete={handleOnboardingComplete}
         />
       </div>
     </div>

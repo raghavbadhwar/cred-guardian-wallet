@@ -1,0 +1,15 @@
+{
+  "tour_start": "Show me around",
+  "tour_skip": "Skip for now",
+  "share_expires": "Link expires in {{minutes}} min",
+  "verify_trust_ok": "Verified and trusted",
+  "verify_revoked": "Revoked by issuer",
+  "privacy_note": "Your data stays on your device. Only proofs are shared.",
+  "continue": "Continue",
+  "cancel": "Cancel",
+  "save": "Save",
+  "close": "Close",
+  "loading": "Loading...",
+  "error": "Error",
+  "success": "Success"
+}

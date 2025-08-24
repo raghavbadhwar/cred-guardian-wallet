@@ -10,6 +10,9 @@ import CredentialDetail from "./pages/CredentialDetail";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import { VerificationPortal } from "./components/VerificationPortal";
+import DigiLocker from "./pages/DigiLocker";
+import Settings from "./pages/Settings";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +29,9 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/wallet" element={<Wallet />} />
             <Route path="/credential/:id" element={<CredentialDetail />} />
+            <Route path="/verify" element={<VerificationPortal />} />
+            <Route path="/digilocker" element={<DigiLocker />} />
+            <Route path="/settings" element={<Settings />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
