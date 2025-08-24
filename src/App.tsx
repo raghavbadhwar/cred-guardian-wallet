@@ -13,6 +13,12 @@ import NotFound from "./pages/NotFound";
 import { VerificationPortal } from "./components/VerificationPortal";
 import DigiLocker from "./pages/DigiLocker";
 import Settings from "./pages/Settings";
+import SettingsLayout from "./pages/settings/SettingsLayout";
+import GeneralSettings from "./pages/settings/GeneralSettings";
+import AccountSettings from "./pages/settings/AccountSettings";
+import SecuritySettings from "./pages/settings/SecuritySettings";
+import BackupSettings from "./pages/settings/BackupSettings";
+import DeviceSettings from "./pages/settings/DeviceSettings";
 
 const queryClient = new QueryClient();
 
@@ -31,7 +37,13 @@ const App = () => (
             <Route path="/credential/:id" element={<CredentialDetail />} />
             <Route path="/verify" element={<VerificationPortal />} />
             <Route path="/digilocker" element={<DigiLocker />} />
-            <Route path="/settings" element={<Settings />} />
+            <Route path="/settings" element={<SettingsLayout />}>
+              <Route index element={<GeneralSettings />} />
+              <Route path="account" element={<AccountSettings />} />
+              <Route path="security" element={<SecuritySettings />} />
+              <Route path="backup" element={<BackupSettings />} />
+              <Route path="devices" element={<DeviceSettings />} />
+            </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

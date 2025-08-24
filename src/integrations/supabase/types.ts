@@ -14,6 +14,38 @@ export type Database = {
   }
   public: {
     Tables: {
+      backups: {
+        Row: {
+          created_at: string | null
+          id: string
+          size_bytes: number | null
+          storage_path: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          size_bytes?: number | null
+          storage_path: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          size_bytes?: number | null
+          storage_path?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "backups_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       credentials: {
         Row: {
           category: string
@@ -63,28 +95,75 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
+          default_share: Json | null
           display_name: string | null
           id: string
+          language: string | null
+          recovery_email: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          default_share?: Json | null
           display_name?: string | null
           id?: string
+          language?: string | null
+          recovery_email?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           avatar_url?: string | null
           created_at?: string
+          default_share?: Json | null
           display_name?: string | null
           id?: string
+          language?: string | null
+          recovery_email?: string | null
           updated_at?: string
           user_id?: string
         }
         Relationships: []
+      }
+      sessions: {
+        Row: {
+          created_at: string | null
+          device_fingerprint: string | null
+          id: string
+          ip_hash: string | null
+          last_seen: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          device_fingerprint?: string | null
+          id?: string
+          ip_hash?: string | null
+          last_seen?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          device_fingerprint?: string | null
+          id?: string
+          ip_hash?: string | null
+          last_seen?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
     }
     Views: {
