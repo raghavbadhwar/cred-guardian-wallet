@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { TwoFactorToggle } from '@/components/TwoFactorToggle';
 import { useToast } from '@/hooks/use-toast';
+import { useProfile } from '@/hooks/useProfile';
 import { 
   Shield, 
   Smartphone, 
@@ -16,20 +17,14 @@ import {
 export default function SecuritySettings() {
   const { t } = useTranslation('settings');
   const { toast } = useToast();
-  const [settings, setSettings] = useState({
-    enablePasskey: false,
-    appLock: true,
-    biometric: false,
-  });
+  const { profile, updateSecurityPreferences, loading } = useProfile();
 
-  const handleSettingChange = (key: string, value: boolean) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
-    localStorage.setItem(`setting_${key}`, value.toString());
-    
-    toast({
-      title: t('setting_updated'),
-      description: t('setting_updated_desc'),
-    });
+  const handleSettingChange = async (key: string, value: boolean) => {
+    try {
+      await updateSecurityPreferences({ [key]: value });
+    } catch (error) {
+      console.error('Error updating security setting:', error);
+    }
   };
 
   return (
@@ -64,8 +59,9 @@ export default function SecuritySettings() {
               </p>
             </div>
             <Switch
-              checked={settings.enablePasskey}
+              checked={profile?.security_preferences?.enablePasskey ?? false}
               onCheckedChange={(checked) => handleSettingChange('enablePasskey', checked)}
+              disabled={loading}
             />
           </div>
         </div>
@@ -87,8 +83,9 @@ export default function SecuritySettings() {
               </p>
             </div>
             <Switch
-              checked={settings.appLock}
+              checked={profile?.security_preferences?.appLock ?? true}
               onCheckedChange={(checked) => handleSettingChange('appLock', checked)}
+              disabled={loading}
             />
           </div>
           
@@ -102,8 +99,9 @@ export default function SecuritySettings() {
               </p>
             </div>
             <Switch
-              checked={settings.biometric}
+              checked={profile?.security_preferences?.biometric ?? false}
               onCheckedChange={(checked) => handleSettingChange('biometric', checked)}
+              disabled={loading}
             />
           </div>
         </div>

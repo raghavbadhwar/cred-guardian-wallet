@@ -120,5 +120,22 @@
   "telemetry": "गुमनाम उपयोग आंकड़े",
   "telemetry_desc": "केवल गुमनाम उपयोग। कोई प्रमाण पत्र नहीं भेजा गया।",
   "export_backup": "एन्क्रिप्टेड बैकअप निर्यात करें",
-  "import_backup": "बैकअप आयात करें"
+  "import_backup": "बैकअप आयात करें",
+  "backup_validated": "बैकअप सत्यापित",
+  "backup_ready_to_restore": "बैकअप फ़ाइल मान्य है और पुनर्स्थापित करने के लिए तैयार है",
+  "invalid_backup_file": "अमान्य बैकअप फ़ाइल प्रारूप",
+  "processing": "प्रसंस्करण...",
+  "saving": "सहेजा जा रहा है...",
+  "sending": "भेजा जा रहा है...",
+  "verifying": "सत्यापन...",
+  "2fa_disable_failed": "दो-कारक प्रमाणीकरण अक्षम करने में विफल",
+  "2fa_enable_failed": "दो-कारक प्रमाणीकरण सक्षम करने में विफल",
+  "verification_code_failed": "सत्यापन कोड भेजने में विफल",
+  "loading_devices": "डिवाइस लोड हो रहे हैं...",
+  "security_action": "सुरक्षा क्रिया",
+  "revoke_all_sessions": "सभी सत्र रद्द करें",
+  "revoke_all_sessions_desc": "यह अन्य सभी डिवाइस और सत्रों को साइन आउट कर देगा। आप इस डिवाइस पर साइन इन रहेंगे।",
+  "revoke_all": "सभी रद्द करें",
+  "revoke_device_session": "डिवाइस सत्र रद्द करें",
+  "revoke_device_session_desc": "यह {{device}} को साइन आउट कर देगा और आपके खाते तक इसकी पहुंच समाप्त कर देगा।"
 }

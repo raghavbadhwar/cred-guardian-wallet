@@ -1,65 +1,27 @@
-import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { useDeviceManagement } from '@/hooks/useDeviceManagement';
 import { 
   Smartphone, 
   Monitor, 
   Tablet, 
   MoreHorizontal,
   Shield,
-  X
+  X,
+  Loader2,
+  AlertTriangle
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-
-interface Device {
-  id: string;
-  name: string;
-  type: 'mobile' | 'desktop' | 'tablet';
-  lastSeen: Date;
-  current: boolean;
-  userAgent: string;
-}
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 export function DeviceListCard() {
-  const [devices, setDevices] = useState<Device[]>([]);
   const { t } = useTranslation('settings');
-  const { toast } = useToast();
+  const { devices, loading, revokeDevice, revokeAllDevices } = useDeviceManagement();
 
-  useEffect(() => {
-    // Mock device data
-    const mockDevices: Device[] = [
-      {
-        id: '1',
-        name: 'Current Device',
-        type: 'desktop',
-        lastSeen: new Date(),
-        current: true,
-        userAgent: navigator.userAgent,
-      },
-      {
-        id: '2',
-        name: 'iPhone 14',
-        type: 'mobile',
-        lastSeen: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
-        current: false,
-        userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X)',
-      },
-      {
-        id: '3',
-        name: 'iPad',
-        type: 'tablet',
-        lastSeen: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2), // 2 days ago
-        current: false,
-        userAgent: 'Mozilla/5.0 (iPad; CPU OS 16_0 like Mac OS X)',
-      },
-    ];
-    setDevices(mockDevices);
-  }, []);
-
-  const getDeviceIcon = (type: Device['type']) => {
+  const getDeviceIcon = (type: 'mobile' | 'desktop' | 'tablet') => {
     switch (type) {
       case 'mobile':
         return Smartphone;
@@ -70,18 +32,55 @@ export function DeviceListCard() {
     }
   };
 
-  const handleRevokeDevice = (deviceId: string) => {
-    setDevices(devices.filter(d => d.id !== deviceId));
-    toast({
-      title: t('device_revoked'),
-      description: t('device_revoked_desc'),
-    });
-  };
+  if (loading) {
+    return (
+      <Card className="p-6">
+        <div className="flex items-center justify-center">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span className="ml-2">{t('loading_devices')}</span>
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-4">
+      {/* Revoke All Sessions */}
+      {devices.filter(d => !d.is_current).length > 0 && (
+        <Card className="p-4 border-warning/20 bg-warning/5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-warning" />
+              <span className="text-sm font-medium">{t('security_action')}</span>
+            </div>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" size="sm" className="text-warning border-warning/20">
+                  {t('revoke_all_sessions')}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>{t('revoke_all_sessions')}</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {t('revoke_all_sessions_desc')}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
+                  <AlertDialogAction onClick={revokeAllDevices} className="bg-warning text-warning-foreground hover:bg-warning/90">
+                    {t('revoke_all')}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        </Card>
+      )}
+
+      {/* Device List */}
       {devices.map((device) => {
-        const Icon = getDeviceIcon(device.type);
+        const Icon = getDeviceIcon(device.device_type);
         
         return (
           <Card key={device.id} className="p-4">
@@ -90,8 +89,8 @@ export function DeviceListCard() {
                 <Icon className="h-5 w-5 text-muted-foreground" />
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="font-medium">{device.name}</span>
-                    {device.current && (
+                    <span className="font-medium">{device.device_name}</span>
+                    {device.is_current && (
                       <Badge variant="secondary" className="text-xs">
                         <Shield className="h-3 w-3 mr-1" />
                         {t('current_device')}
@@ -99,21 +98,41 @@ export function DeviceListCard() {
                     )}
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    {t('last_seen')}: {formatDistanceToNow(device.lastSeen)} {t('ago')}
+                    {t('last_seen')}: {formatDistanceToNow(new Date(device.last_seen))} {t('ago')}
                   </p>
                 </div>
               </div>
               
               <div className="flex items-center gap-2">
-                {!device.current && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleRevokeDevice(device.id)}
-                    className="text-destructive hover:text-destructive"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
+                {!device.is_current && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>{t('revoke_device_session')}</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          {t('revoke_device_session_desc', { device: device.device_name })}
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
+                        <AlertDialogAction 
+                          onClick={() => revokeDevice(device.id)}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          {t('revoke')}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 )}
                 <Button variant="ghost" size="sm">
                   <MoreHorizontal className="h-4 w-4" />

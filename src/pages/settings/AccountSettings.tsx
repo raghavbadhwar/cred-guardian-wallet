@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,30 +7,54 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { useProfile } from '@/hooks/useProfile';
 import { 
   User, 
   Mail, 
   Shield,
-  Save
+  Save,
+  Loader2
 } from 'lucide-react';
 
 export default function AccountSettings() {
   const { t } = useTranslation('settings');
   const { toast } = useToast();
   const { user } = useAuth();
+  const { profile, updateProfile, loading } = useProfile();
   const [formData, setFormData] = useState({
-    displayName: user?.user_metadata?.full_name || '',
+    displayName: '',
     email: user?.email || '',
     recoveryEmail: '',
     defaultSharePreset: '15',
   });
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleSave = () => {
-    // Simulate API call
-    toast({
-      title: t('account_updated'),
-      description: t('account_updated_desc'),
-    });
+  useEffect(() => {
+    if (profile) {
+      setFormData({
+        displayName: profile.display_name || '',
+        email: user?.email || '',
+        recoveryEmail: profile.recovery_email || '',
+        defaultSharePreset: profile.default_share?.expiry_minutes?.toString() || '15',
+      });
+    }
+  }, [profile, user]);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await updateProfile({
+        display_name: formData.displayName,
+        recovery_email: formData.recoveryEmail,
+        default_share: {
+          expiry_minutes: parseInt(formData.defaultSharePreset)
+        }
+      });
+    } catch (error) {
+      console.error('Error saving account settings:', error);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -131,9 +155,13 @@ export default function AccountSettings() {
         </div>
       </Card>
 
-      <Button onClick={handleSave} className="w-full">
-        <Save className="h-4 w-4 mr-2" />
-        {t('save_changes')}
+      <Button onClick={handleSave} className="w-full" disabled={isSaving || loading}>
+        {isSaving ? (
+          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+        ) : (
+          <Save className="h-4 w-4 mr-2" />
+        )}
+        {isSaving ? t('saving') : t('save_changes')}
       </Button>
     </div>
   );

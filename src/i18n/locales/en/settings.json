@@ -120,5 +120,22 @@
   "telemetry": "Anonymous usage statistics",
   "telemetry_desc": "Anonymous usage only. No credentials sent.",
   "export_backup": "Export Encrypted Backup",
-  "import_backup": "Import Backup"
+  "import_backup": "Import Backup",
+  "backup_validated": "Backup Validated",
+  "backup_ready_to_restore": "Backup file is valid and ready to restore",
+  "invalid_backup_file": "Invalid backup file format",
+  "processing": "Processing...",
+  "saving": "Saving...",
+  "sending": "Sending...",
+  "verifying": "Verifying...",
+  "2fa_disable_failed": "Failed to disable two-factor authentication",
+  "2fa_enable_failed": "Failed to enable two-factor authentication",
+  "verification_code_failed": "Failed to send verification code",
+  "loading_devices": "Loading devices...",
+  "security_action": "Security Action",
+  "revoke_all_sessions": "Revoke All Sessions",
+  "revoke_all_sessions_desc": "This will sign out all other devices and sessions. You will remain signed in on this device.",
+  "revoke_all": "Revoke All",
+  "revoke_device_session": "Revoke Device Session",
+  "revoke_device_session_desc": "This will sign out {{device}} and terminate its access to your account."
 }
