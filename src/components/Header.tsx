@@ -3,7 +3,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Shield, Settings, ChevronLeft, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
-import credverseIcon from "@/assets/credverse-icon.png";
+import credverseIcon from "/lovable-uploads/db11a0ec-0435-450c-9ff8-9ac7c6c38c91.png";
 interface HeaderProps {
   title?: string;
   showBack?: boolean;
