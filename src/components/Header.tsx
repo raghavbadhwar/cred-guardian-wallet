@@ -28,7 +28,7 @@ export function Header({
           </Button>}
         
         <div className="flex items-center gap-2">
-          <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-background/10 backdrop-blur-sm">
+          <div className="flex items-center justify-center h-8 w-8 backdrop-blur-sm bg-gray-950 rounded-none">
             <img src={credverseIcon} alt="CredVerse" className="h-5 w-5" />
           </div>
           <h1 className="text-lg font-bold text-foreground">
