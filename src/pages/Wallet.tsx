@@ -228,7 +228,17 @@ export default function Wallet() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header title={t('title')} />
+      <Header 
+        title={t('title')} 
+        showQuickActions={true}
+        onPresent={() => credentials.length > 0 && handleShare(credentials[0])}
+        onImport={navigateToImport}
+        onBackup={handleBackup}
+        onSettings={() => navigate('/settings')}
+        onDigiLocker={navigateToDigiLocker}
+        onTrash={navigateToTrash}
+        trashCount={credentials.filter(c => c.deleted_at).length}
+      />
       
       <div className="p-4 space-y-8">
         {/* Hero Section with Primary Actions */}
@@ -294,59 +304,6 @@ export default function Wallet() {
           </div>
         </div>
         
-        {/* Quick Actions Grid */}
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-foreground">Quick Actions</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <WalletActionCard
-              title={t('present')}
-              description="Share credentials"
-              icon={Share2}
-              onClick={() => credentials.length > 0 && handleShare(credentials[0])}
-              disabled={credentials.length === 0}
-              data-tour="present"
-            />
-            
-            <WalletActionCard
-              title="Import"
-              description="Add credentials"
-              icon={FileText}
-              onClick={navigateToImport}
-            />
-            
-            <WalletActionCard
-              title={t('backup')}
-              description="Export wallet"
-              icon={Download}
-              onClick={handleBackup}
-              data-tour="backup"
-            />
-            
-            <WalletActionCard
-              title="Settings"
-              description="Manage account"
-              icon={Settings}
-              onClick={() => navigate('/settings')}
-            />
-          </div>
-          
-          <div className="grid grid-cols-2 gap-3">
-            <WalletActionCard
-              title="DigiLocker"
-              description="Connect account"
-              icon={ExternalLink}
-              onClick={navigateToDigiLocker}
-            />
-            
-            <WalletActionCard
-              title="Trash"
-              description="Deleted items"
-              icon={Trash2}
-              onClick={navigateToTrash}
-              badge={credentials.filter(c => c.deleted_at).length}
-            />
-          </div>
-        </div>
 
         {/* Enhanced Search */}
         <div className="space-y-4">
