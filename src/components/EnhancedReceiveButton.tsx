@@ -45,7 +45,7 @@ export function EnhancedReceiveButton({
         <Button 
           onClick={handleQuickImport}
           variant="primary"
-          className="min-h-[6rem] h-24 flex-col gap-1 gradient-primary shadow-glow hover:shadow-elevated transition-smooth group relative overflow-hidden"
+          className="p-6 min-h-[6rem] flex-col gap-1 gradient-primary shadow-glow hover:shadow-elevated transition-smooth group relative overflow-hidden"
           data-tour="receive"
         >
           {/* Animated background */}
