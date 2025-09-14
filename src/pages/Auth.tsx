@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Shield, Mail, Lock, User } from "lucide-react";
-import credverseIcon from "@/assets/credverse-icon.png";
+import credverseLogo from "@/assets/credverse-logo.png";
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -94,7 +94,7 @@ export default function Auth() {
           <div className="text-center space-y-4">
             <div className="flex items-center justify-center">
               <div className="flex items-center justify-center h-12 w-12 rounded-lg bg-background/10 backdrop-blur-sm">
-                <img src={credverseIcon} alt="CredVerse" className="h-8 w-8" />
+                <img src={credverseLogo} alt="CredVerse" className="h-8 w-8" />
               </div>
             </div>
             <div>
