@@ -322,6 +322,33 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limits: {
+        Row: {
+          created_at: string | null
+          endpoint: string
+          id: string
+          requests_count: number | null
+          user_id: string | null
+          window_start: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          endpoint: string
+          id?: string
+          requests_count?: number | null
+          user_id?: string | null
+          window_start?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          endpoint?: string
+          id?: string
+          requests_count?: number | null
+          user_id?: string | null
+          window_start?: string | null
+        }
+        Relationships: []
+      }
       sessions: {
         Row: {
           created_at: string | null
@@ -551,6 +578,27 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_rate_limit: {
+        Args: {
+          p_endpoint: string
+          p_limit?: number
+          p_user_id: string
+          p_window_minutes?: number
+        }
+        Returns: boolean
+      }
+      cleanup_expired_sessions: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      decrypt_token: {
+        Args: { encrypted_token: string }
+        Returns: string
+      }
+      encrypt_token: {
+        Args: { token_text: string }
+        Returns: string
+      }
       gtrgm_compress: {
         Args: { "": unknown }
         Returns: unknown
@@ -570,6 +618,17 @@ export type Database = {
       gtrgm_out: {
         Args: { "": unknown }
         Returns: unknown
+      }
+      log_security_event: {
+        Args: {
+          p_event_type: string
+          p_metadata?: Json
+          p_resource_id?: string
+          p_resource_type?: string
+          p_risk_level?: string
+          p_user_id: string
+        }
+        Returns: undefined
       }
       log_user_action: {
         Args: {
@@ -596,6 +655,14 @@ export type Database = {
       update_share_analytics: {
         Args: { p_analytics_data: Json; p_share_id: string }
         Returns: undefined
+      }
+      validate_session_context: {
+        Args: {
+          p_device_fingerprint: string
+          p_user_agent: string
+          p_user_id: string
+        }
+        Returns: boolean
       }
     }
     Enums: {
