@@ -13,6 +13,7 @@ import {
   Clock, 
   Shield, 
   Eye, 
+  EyeOff,
   Lock,
   Globe,
   Calendar,
@@ -292,20 +293,38 @@ export function VerificationPortal() {
                   )}
                 </div>
 
-                {/* Shared Fields */}
+                {/* Shared Fields with Selective Disclosure */}
                 <div>
                   <Label className="text-sm font-medium text-muted-foreground mb-2 block">
                     {t('shared_information')}
                   </Label>
                   <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-                    {Object.entries(result.credential.payload || {}).map(([key, value]) => (
-                      <div key={key} className="flex justify-between">
-                        <span className="font-medium capitalize">
-                          {key.replace(/([A-Z])/g, ' $1').trim()}:
-                        </span>
-                        <span>{String(value)}</span>
-                      </div>
-                    ))}
+                    {Object.entries(result.credential.payload || {}).map(([key, value]) => {
+                      // Check if this field should be shown based on share policy
+                      const fieldVisibility = result.share?.policy?.fieldVisibility?.[key] || 'visible';
+                      
+                      if (fieldVisibility === 'hidden') return null;
+                      
+                      const displayValue = fieldVisibility === 'masked' 
+                        ? maskFieldValue(String(value))
+                        : String(value);
+                      
+                      return (
+                        <div key={key} className="flex justify-between items-center">
+                          <span className="font-medium capitalize">
+                            {key.replace(/([A-Z])/g, ' $1').trim()}:
+                          </span>
+                          <div className="flex items-center gap-2">
+                            {fieldVisibility === 'masked' && (
+                              <EyeOff className="h-3 w-3 text-amber-600" />
+                            )}
+                            <span className={fieldVisibility === 'masked' ? 'text-amber-700' : ''}>
+                              {displayValue}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -362,3 +381,9 @@ export function VerificationPortal() {
     </div>
   );
 }
+
+// Helper function to mask field values for selective disclosure
+const maskFieldValue = (value: string): string => {
+  if (value.length <= 4) return '***';
+  return value.slice(0, 2) + '*'.repeat(value.length - 4) + value.slice(-2);
+};

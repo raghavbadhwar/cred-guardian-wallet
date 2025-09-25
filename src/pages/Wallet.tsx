@@ -11,7 +11,7 @@ import { QRScanner } from "@/components/QRScanner";
 import { BackupDialog } from "@/components/BackupDialog";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import { ShareDialog } from "@/components/ShareDialog";
-import { EnhancedShareDialog } from "@/components/EnhancedShareDialog";
+import { SelectiveDisclosureDialog } from "@/components/SelectiveDisclosureDialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -425,7 +425,7 @@ export default function Wallet() {
           credential={selectedCredential}
         />
 
-        <EnhancedShareDialog
+        <SelectiveDisclosureDialog
           open={showEnhancedShare}
           onClose={() => {
             setShowEnhancedShare(false);
