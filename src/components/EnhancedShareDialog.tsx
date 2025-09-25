@@ -11,6 +11,9 @@ import { Card } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Copy, QrCode, Link, Shield, Eye, Clock, Share2 } from 'lucide-react';
 import QRCode from 'qrcode';
+import { shareDialogSchema, fieldNameSchema, sanitizeString } from '@/schemas/validation';
+import { useSecurityMonitoring } from '@/hooks/useSecurityMonitoring';
+import { z } from 'zod';
 
 interface ShareDialogProps {
   open: boolean;
@@ -59,6 +62,8 @@ export function EnhancedShareDialog({ open, onClose, credential, onCreateShare }
   const [requireAccessCode, setRequireAccessCode] = useState(false);
   const [shareResult, setShareResult] = useState<{ id: string; url: string } | null>(null);
   const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const { logSecurityEvent, checkRateLimit } = useSecurityMonitoring();
 
   const availableFields = credential?.payload ? Object.keys(credential.payload) : [];
 
@@ -72,18 +77,90 @@ export function EnhancedShareDialog({ open, onClose, credential, onCreateShare }
 
   const handleCreateShare = async () => {
     try {
+      // Prepare fields based on preset
+      const fieldsToShare = preset === 'custom' ? selectedFields : 
+                           preset === 'lite' ? getLiteFields() : 
+                           availableFields;
+
+      // Validate input data
+      const formData = {
+        preset,
+        selectedFields: fieldsToShare.map(field => sanitizeString(field)),
+        expiryMinutes: parseInt(expiryMinutes),
+        maxViews: parseInt(maxViews),
+        accessCode: accessCode ? sanitizeString(accessCode) : undefined,
+        requireAccessCode
+      };
+
+      const validation = shareDialogSchema.safeParse(formData);
+      
+      if (!validation.success) {
+        const errors: Record<string, string> = {};
+        validation.error.errors.forEach(error => {
+          errors[error.path[0] as string] = error.message;
+        });
+        setValidationErrors(errors);
+        
+        toast({
+          title: t('validation_error') || "Validation Error",
+          description: t('check_input') || "Please check your input and try again",
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Clear validation errors
+      setValidationErrors({});
+
+      // Check rate limit for sharing
+      const rateLimitOk = await checkRateLimit('share_create', 20, 60);
+      if (!rateLimitOk) {
+        toast({
+          title: t('rate_limited') || "Rate Limited",
+          description: t('too_many_requests') || "Too many share requests. Please try again later.",
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Validate individual field names
+      for (const field of fieldsToShare) {
+        const fieldValidation = fieldNameSchema.safeParse(field);
+        if (!fieldValidation.success) {
+          toast({
+            title: t('invalid_field') || "Invalid Field",
+            description: `Field "${field}" contains invalid characters`,
+            variant: 'destructive',
+          });
+          return;
+        }
+      }
+
+      // Log security event based on share sensitivity
+      const riskLevel = requireAccessCode ? 'low' : 
+                        fieldsToShare.length > 10 ? 'medium' :
+                        parseInt(expiryMinutes) > 1440 ? 'medium' : 'low';
+
+      await logSecurityEvent('credential_share_created', 'credential', credential.id, {
+        field_count: fieldsToShare.length,
+        expiry_minutes: parseInt(expiryMinutes),
+        max_views: parseInt(maxViews),
+        has_access_code: requireAccessCode,
+        preset: preset
+      }, riskLevel);
+
       const expiresAt = new Date();
-      expiresAt.setMinutes(expiresAt.getMinutes() + parseInt(expiryMinutes));
+      expiresAt.setMinutes(expiresAt.getMinutes() + validation.data.expiryMinutes);
 
       const shareData: ShareData = {
         credId: credential.id,
         policy: {
           preset,
-          ...(preset === 'custom' && { fields: selectedFields }),
+          ...(preset === 'custom' && { fields: validation.data.selectedFields }),
         },
         expiresAt: expiresAt.toISOString(),
-        maxViews: parseInt(maxViews),
-        ...(requireAccessCode && { accessCode }),
+        maxViews: validation.data.maxViews,
+        ...(validation.data.requireAccessCode && { accessCode: validation.data.accessCode }),
       };
 
       const result = await onCreateShare(shareData);
@@ -100,7 +177,15 @@ export function EnhancedShareDialog({ open, onClose, credential, onCreateShare }
         title: t('share_created'),
         description: t('share_created_desc'),
       });
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Error creating share:', error);
+      
+      // Log failed share attempt
+      await logSecurityEvent('credential_share_failed', 'credential', credential?.id, {
+        error: error.message,
+        field_count: selectedFields.length
+      }, 'medium');
+
       toast({
         title: t('error'),
         description: t('share_creation_failed'),

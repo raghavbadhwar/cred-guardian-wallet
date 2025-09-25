@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
+import { useAuditLog } from './useAuditLog';
 
 export interface DigiLockerConnection {
   id: string;
@@ -33,6 +34,7 @@ export function useDigiLocker() {
   const [connecting, setConnecting] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
+  const { logAction } = useAuditLog();
 
   const initiateOAuth = async (): Promise<{ authUrl: string; state: string } | null> => {
     if (!user) return null;
@@ -40,12 +42,24 @@ export function useDigiLocker() {
     try {
       setConnecting(true);
       
+      // Log security event
+      await logAction('digilocker_oauth_initiate', 'digilocker_connection', undefined, {
+        timestamp: new Date().toISOString(),
+        user_agent: navigator.userAgent
+      });
+      
       const { data, error } = await supabase.functions.invoke('digilocker-oauth', {
         body: { action: 'authorize' }
       });
 
       if (error) {
         console.error('OAuth initiation error:', error);
+        
+        // Log failed attempt
+        await logAction('digilocker_oauth_failed', 'digilocker_connection', undefined, {
+          error: error.message,
+          timestamp: new Date().toISOString()
+        });
         
         // Check if this is a sandbox mode response
         if (error.message?.includes('sandbox')) {
@@ -75,6 +89,12 @@ export function useDigiLocker() {
     try {
       setLoading(true);
 
+      // Log callback attempt
+      await logAction('digilocker_oauth_callback', 'digilocker_connection', undefined, {
+        timestamp: new Date().toISOString(),
+        state: state.slice(0, 10) + '...', // Truncate for privacy
+      });
+
       const { data, error } = await supabase.functions.invoke('digilocker-oauth', {
         body: { 
           action: 'callback',
@@ -83,7 +103,20 @@ export function useDigiLocker() {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        // Log failed callback
+        await logAction('digilocker_oauth_callback_failed', 'digilocker_connection', undefined, {
+          error: error.message,
+          timestamp: new Date().toISOString()
+        });
+        throw error;
+      }
+
+      // Log successful connection
+      await logAction('digilocker_connected', 'digilocker_connection', undefined, {
+        timestamp: new Date().toISOString(),
+        connection_id: data?.connection_id
+      });
 
       toast({
         title: "Connected Successfully",
@@ -110,9 +143,27 @@ export function useDigiLocker() {
     try {
       setLoading(true);
 
+      // Log document fetch attempt
+      await logAction('digilocker_fetch_documents', 'digilocker_documents', undefined, {
+        timestamp: new Date().toISOString()
+      });
+
       const { data, error } = await supabase.functions.invoke('digilocker-fetch');
 
-      if (error) throw error;
+      if (error) {
+        // Log fetch failure
+        await logAction('digilocker_fetch_failed', 'digilocker_documents', undefined, {
+          error: error.message,
+          timestamp: new Date().toISOString()
+        });
+        throw error;
+      }
+
+      // Log successful fetch (without sensitive data)
+      await logAction('digilocker_documents_fetched', 'digilocker_documents', undefined, {
+        document_count: data.documents?.length || 0,
+        timestamp: new Date().toISOString()
+      });
 
       return data.documents || [];
     } catch (error: any) {
@@ -154,12 +205,29 @@ export function useDigiLocker() {
     if (!user) return false;
 
     try {
+      // Log disconnection attempt
+      await logAction('digilocker_disconnect_attempt', 'digilocker_connection', undefined, {
+        timestamp: new Date().toISOString()
+      });
+
       const { error } = await supabase
         .from('digilocker_connections')
         .delete()
         .eq('user_id', user.id);
 
-      if (error) throw error;
+      if (error) {
+        // Log failed disconnection
+        await logAction('digilocker_disconnect_failed', 'digilocker_connection', undefined, {
+          error: error.message,
+          timestamp: new Date().toISOString()
+        });
+        throw error;
+      }
+
+      // Log successful disconnection
+      await logAction('digilocker_disconnected', 'digilocker_connection', undefined, {
+        timestamp: new Date().toISOString()
+      });
 
       toast({
         title: "Disconnected",
