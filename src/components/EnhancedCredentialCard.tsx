@@ -38,7 +38,7 @@ interface Credential {
 
 interface CredentialCardProps {
   credential: Credential;
-  onShare?: (credentialId: string) => void;
+  onShare?: (credential: Credential) => void;
   onArchive?: (credentialId: string) => void;
   onRestore?: (credentialId: string) => void;
   onDelete?: (credentialId: string) => void;
@@ -140,7 +140,7 @@ export function EnhancedCredentialCard({
           <DropdownMenuContent align="end">
             {!isInTrash ? (
               <>
-                <DropdownMenuItem onClick={() => onShare?.(credential.id)}>
+                <DropdownMenuItem onClick={() => onShare?.(credential)}>
                   <Share2 className="h-4 w-4 mr-2" />
                   {t('share')}
                 </DropdownMenuItem>

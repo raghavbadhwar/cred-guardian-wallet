@@ -125,15 +125,26 @@ export default function Wallet() {
 
   const handleCreateShare = async (shareData: any) => {
     try {
+      console.log('Creating share with data:', shareData);
+      
       const response = await supabase.functions.invoke('create-share', {
         body: shareData
       });
 
-      if (response.error) throw response.error;
+      if (response.error) {
+        console.error('Edge function error:', response.error);
+        throw response.error;
+      }
       
+      console.log('Share created successfully:', response.data);
       return response.data;
     } catch (error) {
       console.error('Share creation failed:', error);
+      toast({
+        title: "Share Failed",
+        description: "Could not create share link. Please try again.",
+        variant: "destructive",
+      });
       throw error;
     }
   };
