@@ -17,15 +17,18 @@ interface DigiLockerDocument {
 }
 
 serve(async (req) => {
+  console.log('DigiLocker fetch function called');
+
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // Initialize Supabase client with service role key for admin operations
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       {
         auth: {
           autoRefreshToken: false,
@@ -52,11 +55,53 @@ serve(async (req) => {
       );
     }
 
+    console.log('Authenticated user:', user.id);
+
+    // Check rate limiting
+    const { data: rateLimitOk } = await supabase.rpc('check_rate_limit', {
+      p_user_id: user.id,
+      p_endpoint: 'digilocker_fetch',
+      p_limit: 10,
+      p_window_minutes: 60
+    });
+
+    if (!rateLimitOk) {
+      console.log('Rate limit exceeded for user:', user.id);
+      
+      await supabase.rpc('log_security_event', {
+        p_user_id: user.id,
+        p_event_type: 'rate_limit_exceeded',
+        p_resource_type: 'api_endpoint',
+        p_metadata: {
+          endpoint: 'digilocker_fetch',
+          timestamp: new Date().toISOString()
+        },
+        p_risk_level: 'medium'
+      });
+
+      return new Response(
+        JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Check if DigiLocker credentials are configured
     const apiBaseUrl = Deno.env.get('DIGILOCKER_API_BASE_URL') || 'https://api.digitallocker.gov.in/public';
+    const encryptionKey = Deno.env.get('ENCRYPTION_KEY');
     
     if (!Deno.env.get('DIGILOCKER_CLIENT_ID')) {
       console.log('DigiLocker credentials not configured, returning sandbox documents');
+      
+      // Log sandbox access
+      await supabase.rpc('log_security_event', {
+        p_user_id: user.id,
+        p_event_type: 'digilocker_sandbox_access',
+        p_resource_type: 'digilocker_api',
+        p_metadata: {
+          timestamp: new Date().toISOString()
+        },
+        p_risk_level: 'low'
+      });
       
       // Return mock documents for sandbox mode
       const mockDocuments: DigiLockerDocument[] = [
@@ -104,69 +149,171 @@ serve(async (req) => {
       .single();
 
     if (connectionError || !connection) {
+      console.error('No DigiLocker connection found:', connectionError);
+      
+      await supabase.rpc('log_security_event', {
+        p_user_id: user.id,
+        p_event_type: 'digilocker_connection_not_found',
+        p_resource_type: 'digilocker_connection',
+        p_metadata: {
+          error: connectionError?.message,
+          timestamp: new Date().toISOString()
+        },
+        p_risk_level: 'medium'
+      });
+
       return new Response(
         JSON.stringify({ error: 'DigiLocker connection not found' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    // Decrypt access token
+    let accessToken = connection.access_token;
+    
+    if (encryptionKey) {
+      try {
+        const { data: decryptedToken } = await supabase.rpc('decrypt_token', {
+          encrypted_token: accessToken
+        });
+        accessToken = decryptedToken;
+        console.log('Token decrypted successfully');
+      } catch (decryptError) {
+        console.warn('Token decryption failed, using as-is:', decryptError);
+        // Continue with token as-is if decryption fails (backwards compatibility)
+      }
+    }
+
     // Check if token is expired
     const now = new Date();
     const expiresAt = new Date(connection.expires_at);
     if (now >= expiresAt) {
+      console.log('Access token expired');
+      
+      await supabase.rpc('log_security_event', {
+        p_user_id: user.id,
+        p_event_type: 'digilocker_token_expired',
+        p_resource_type: 'digilocker_connection',
+        p_metadata: {
+          expires_at: connection.expires_at,
+          timestamp: new Date().toISOString()
+        },
+        p_risk_level: 'medium'
+      });
+
       return new Response(
         JSON.stringify({ error: 'DigiLocker token expired' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Fetch documents from DigiLocker API
-    const documentsResponse = await fetch(`${apiBaseUrl}/v1/issueddocs`, {
-      headers: {
-        'Authorization': `${connection.token_type} ${connection.access_token}`,
-        'Content-Type': 'application/json',
+    // Log document fetch attempt
+    await supabase.rpc('log_security_event', {
+      p_user_id: user.id,
+      p_event_type: 'digilocker_fetch_documents',
+      p_resource_type: 'digilocker_api',
+      p_metadata: {
+        timestamp: new Date().toISOString()
       },
+      p_risk_level: 'low'
     });
 
-    if (!documentsResponse.ok) {
-      const errorText = await documentsResponse.text();
-      console.error('DigiLocker API error:', errorText);
+    // Fetch documents from DigiLocker API
+    try {
+      const documentsResponse = await fetch(`${apiBaseUrl}/v1/issueddocs`, {
+        headers: {
+          'Authorization': `${connection.token_type} ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!documentsResponse.ok) {
+        const errorText = await documentsResponse.text();
+        console.error('DigiLocker API error:', errorText);
+        
+        // Log API error
+        await supabase.rpc('log_security_event', {
+          p_user_id: user.id,
+          p_event_type: 'digilocker_api_error',
+          p_resource_type: 'digilocker_api',
+          p_metadata: {
+            status: documentsResponse.status,
+            error: errorText.slice(0, 500), // Truncate error message
+            timestamp: new Date().toISOString()
+          },
+          p_risk_level: 'medium'
+        });
+
+        return new Response(
+          JSON.stringify({ error: 'Failed to fetch documents from DigiLocker' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const documentsData = await documentsResponse.json();
+      console.log('Successfully fetched documents from DigiLocker');
+      
+      // Transform DigiLocker documents to our format
+      const documents: DigiLockerDocument[] = documentsData.items?.map((doc: any) => ({
+        id: doc.uri || doc.id,
+        name: doc.name || doc.docname,
+        type: doc.type || doc.doctype,
+        issuer: doc.issuer || doc.issuerid,
+        issued_date: doc.date || doc.issuedate,
+        metadata: {
+          category: mapDocumentCategory(doc.type || doc.doctype),
+          verified: true,
+          original_data: doc
+        }
+      })) || [];
+
+      // Update last sync timestamp
+      await supabase
+        .from('digilocker_connections')
+        .update({ last_sync_at: new Date().toISOString() })
+        .eq('id', connection.id);
+
+      // Log successful fetch
+      await supabase.rpc('log_security_event', {
+        p_user_id: user.id,
+        p_event_type: 'digilocker_documents_fetched',
+        p_resource_type: 'digilocker_api',
+        p_metadata: {
+          document_count: documents.length,
+          timestamp: new Date().toISOString()
+        },
+        p_risk_level: 'low'
+      });
+
+      return new Response(
+        JSON.stringify({ 
+          documents,
+          sandbox: false,
+          synced_at: new Date().toISOString()
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+
+    } catch (apiError: any) {
+      console.error('Error calling DigiLocker API:', apiError);
+      
+      // Log API error
+      await supabase.rpc('log_security_event', {
+        p_user_id: user.id,
+        p_event_type: 'digilocker_fetch_error',
+        p_resource_type: 'digilocker_api',
+        p_metadata: {
+          error: apiError?.message || 'Unknown API error',
+          timestamp: new Date().toISOString()
+        },
+        p_risk_level: 'medium'
+      });
+
       return new Response(
         JSON.stringify({ error: 'Failed to fetch documents from DigiLocker' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
-    const documentsData = await documentsResponse.json();
-    
-    // Transform DigiLocker documents to our format
-    const documents: DigiLockerDocument[] = documentsData.items?.map((doc: any) => ({
-      id: doc.uri || doc.id,
-      name: doc.name || doc.docname,
-      type: doc.type || doc.doctype,
-      issuer: doc.issuer || doc.issuerid,
-      issued_date: doc.date || doc.issuedate,
-      metadata: {
-        category: mapDocumentCategory(doc.type || doc.doctype),
-        verified: true,
-        original_data: doc
-      }
-    })) || [];
-
-    // Update last sync timestamp
-    await supabase
-      .from('digilocker_connections')
-      .update({ last_sync_at: new Date().toISOString() })
-      .eq('id', connection.id);
-
-    return new Response(
-      JSON.stringify({ 
-        documents,
-        sandbox: false,
-        synced_at: new Date().toISOString()
-      }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
 
   } catch (error) {
     console.error('DigiLocker fetch error:', error);
